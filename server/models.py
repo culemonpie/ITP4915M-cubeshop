@@ -36,8 +36,8 @@ class Tenant(models.Model):
 	phone = models.CharField(max_length = 255)
 	address = models.TextField(max_length = 255)
 	date_joined = models.DateField(auto_now_add = True)
-	balance = models.DateField(max_length = 255)
-	commission_rate = models.DecimalField(max_digits = 6, decimal_places = 1)
+	balance = models.DecimalField(max_digits = 6, decimal_places = 1, default = 0)
+	commission_rate = models.DecimalField(max_digits = 6, decimal_places = 1, default = 5)
 	#user = models.OneToOneField(User, on_delete = models.CASCADE) #user_id
 
 class Store(models.Model):
