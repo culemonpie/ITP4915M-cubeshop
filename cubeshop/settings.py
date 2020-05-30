@@ -74,8 +74,8 @@ DATABASES = {
 	'default': {
 		'ENGINE': 'django.db.backends.mysql',
 		'NAME': 'cubeshop',
-		'USER': 'cubeshop',
-		'PASSWORD': 'YJEAQ4MyVw4fun',
+		'USER': 'root',
+		'PASSWORD': 'WFaPOPmyF5bG',
 		'HOST': '127.0.0.1',
 		'PORT': '3306',
 		'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
@@ -137,3 +137,4 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = '/static/'
+STATIC_ROOT = '/home/bitnami/cubeshop/static'
