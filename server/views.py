@@ -5,6 +5,7 @@ from django.contrib.auth import authenticate,login
 from django.core import serializers
 from . import models as m
 import datetime
+import json
 
 # Create your views here.
 def index(request):
@@ -135,3 +136,23 @@ def list_tenant(request):
 		response["status"] = "Failed"
 		response["message"] = str(e)
 		return JsonResponse(response)
+
+def list_store(request):
+	stores = m.Store.objects.all()
+	msg = []
+	try:
+		for store in stores:
+			store_dict = {}
+			store_dict["store_id"] = store.store_id
+			store_dict["name"] = store.store_name
+			store_dict["usage"] = "30/32"
+			store_dict["manager"] = "Alan Po"
+			store_dict["is_active"] = store.is_active
+			msg.append(store_dict)
+		json_msg = json.dumps(msg, indent=2)
+		return HttpResponse(json_msg, content_type="application/json")
+	except Exception as e:
+		return HttpResponse(e)
+		r = {}
+		r["message"] = e
+		return JsonResponse(r)

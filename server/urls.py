@@ -9,6 +9,7 @@ urlpatterns = [
 	path('get_tenant', views.get_tenant, name='get_tenant'),
 	path('update_tenant', views.update_tenant, name='get_tenant'),
 	path('list_tenant', views.list_tenant, name='list_tenant'),
+	path('list_store', views.list_store, name='list_store'),
 ]
 
 n = [
