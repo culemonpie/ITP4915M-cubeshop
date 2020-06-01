@@ -22,7 +22,8 @@ def login_view(request):
 		login(request, user)
 		response = {}
 		response["username"] = request.user.username
-		response["is_staff"] = request.user.is_staff
+		response["user_id"] = request.user.id
+		response["user_type"] = 1
 		return JsonResponse(response)
 	else:
 		response = {}

@@ -17,6 +17,7 @@ class Staff(models.Model):
 		(STM, "Store manager"),
 		(HRM, "Human resources manager"),
 		(SLM, "Part time staff"),
+		(D, "Director"),
 	)
 
 
