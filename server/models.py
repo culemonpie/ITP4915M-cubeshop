@@ -46,7 +46,7 @@ class Store(models.Model):
 	store_name = models.CharField(max_length = 255)
 	address = models.TextField(max_length = 255)
 	is_active = models.BooleanField(default = True)
-	manager = models.ForeignKey("Staff", on_delete = models.SET_NULL, null = True, related_name = "manager")
+	manager = models.ForeignKey("Staff", on_delete = models.SET_NULL, null = True, blank = True, related_name = "manager")
 
 class Showcase(models.Model):
 	N = "N"
