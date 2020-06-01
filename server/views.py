@@ -1,30 +1,33 @@
 import django
 from django.shortcuts import render
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse, FileResponse
-from django.contrib.auth import authenticate
+from django.contrib.auth import authenticate,login
 from django.core import serializers
 from . import models as m
 import datetime
 
 # Create your views here.
 def index(request):
-	return HttpResponse("API")
+	if request.user.is_authenticated:
+		return HttpResponse(request.user.username)
+	else:
+		return HttpResponse("Welcome")
 
-def login(request):
+def login_view(request):
 	username = request.GET.get("username")
 	password = request.GET.get("password")
 	user = authenticate(username = username, password = password)
 
 	if user:
+		login(request, user)
 		response = {}
-		response["status"] = "Success"
-		response["result"] = serializers.serialize('json', [user,])
-		return JsonResponse(response, safe = True)
+		response["username"] = request.user.username
+		response["is_staff"] = request.user.is_staff
+		return JsonResponse(response)
 	else:
 		response = {}
-		response["status"] = "Failed"
 		response["message"] = "Incorrect password"
-		return JsonResponse(response, safe = True)
+		return JsonResponse(response, status = 400)
 
 
 def search(request):
@@ -39,7 +42,7 @@ def search(request):
 	return JsonResponse(response, safe = True)
 
 def create_tenant(request):
-	tenant_id = request.GET.get("tenant_id")
+	# tenant_id = request.GET.get("tenant_id")
 	tenant_name = request.GET.get("tenant_name")
 	phone = request.GET.get("phone")
 	address = request.GET.get("address")
@@ -54,19 +57,16 @@ def create_tenant(request):
 		try:
 			user = m.User(username = username, password = password)
 			user.save()
-			tenant = m.Tenant(tenant_id = tenant_id, tenant_name = tenant_name, phone = phone, address = address, commission_rate = commission_rate, user = user)
+			tenant = m.Tenant(tenant_name = tenant_name, phone = phone, address = address, commission_rate = commission_rate, user = user)
 			tenant.save()
 			# tenant = m.Tenant.objects.get(tenant_id = tenant_id)
 
 			response = {}
-			response["status"] = "Success"
-			response["result"] = serializers.serialize('json', [tenant,])
 			return JsonResponse(response)
 		except Exception as e:
 			response = {}
-			response["status"] = "Failed"
 			response["message"] = str(e)
-			return JsonResponse(response)
+			return JsonResponse(response, status = 400)
 
 
 def update_tenant(request):
@@ -83,18 +83,23 @@ def update_tenant(request):
 				tenant.update(**val)
 				response = {}
 				response["status"] = "Success"
-				response["result"] =  serializers.serialize('json', tenant)
+				response["tenant_id"] =  tenant.tenant_id
+				response["tenant_name"] =  tenant.tenant_name
+				response["phone"] =  tenant.phone
+				response["address"] =  tenant.address
+				response["date_joined"] =  tenant.date_joined
+				response["balance"] =  tenant.balance
+				response["commission_rate"] =  tenant.commission_rate
 				return JsonResponse(response)
 			else:
 				response = {}
-				response["status"] = "Failed"
 				response["message"] =  "Matching query does not exist"
-				return JsonResponse(response)
+				return JsonResponse(response, status = 400)
 		except Exception as e:
 			response = {}
 			response["status"] = "Failed"
 			response["message"] =  str(e)
-			return JsonResponse(response)
+			return JsonResponse(response, status = 400)
 
 def get_tenant(request):
 	tenant_id = request.GET.get("tenant_id")
@@ -102,23 +107,28 @@ def get_tenant(request):
 	try:
 		tenant = m.Tenant.objects.get(tenant_id = tenant_id)
 		response = {}
+		response = {}
 		response["status"] = "Success"
-		response["result"] =  serializers.serialize('json', [tenant,])
+		response["tenant_id"] =  tenant.tenant_id
+		response["tenant_name"] =  tenant.tenant_name
+		response["phone"] =  tenant.phone
+		response["address"] =  tenant.address
+		response["date_joined"] =  tenant.date_joined
+		response["balance"] =  tenant.balance
+		response["commission_rate"] =  tenant.commission_rate
 		return JsonResponse(response)
 	except Exception as e:
 		response = {}
-		response["status"] = "Failed"
 		response["message"] = str(e)
-		return JsonResponse(response)
+		return JsonResponse(response, status = 400)
 
 def list_tenant(request):
 	keywords = request.GET.dict()
 	try:
 		tenants = m.Tenant.objects.filter(**keywords)[:20]
 		response = {}
-		response["status"] = "Success"
-		response["result"] =  serializers.serialize('json', tenants)
-		return JsonResponse(response)
+		response =  serializers.serialize('json', tenants)
+		return JsonResponse(response, safe = False)
 	except Exception as e:
 		response = {}
 		response["status"] = "Failed"
