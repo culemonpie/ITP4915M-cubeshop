@@ -150,11 +150,14 @@ class Inventory(models.Model):
 class Receipt(models.Model):
 	receipt_id = models.IntegerField(primary_key = True)
 	grand_total = models.DecimalField(max_digits = 6, decimal_places = 1)
-	time = models.DateTimeField()
+	time = models.DateTimeField(auto_now_add = True)
 	tender = models.DecimalField(max_digits = 6, decimal_places = 1)
 	change = models.DecimalField(max_digits = 6, decimal_places = 1)
 	responsible = models.ForeignKey("Staff", on_delete = models.CASCADE)
 	is_cancelled = models.BooleanField(default = False)
+
+	def __str__(self):
+		return str(self.receipt_id).zfill(6)
 
 class Purchase(models.Model):
 	purchase_id = models.IntegerField(primary_key = True)
