@@ -48,6 +48,10 @@ class Store(models.Model):
 	is_active = models.BooleanField(default = True)
 	manager = models.ForeignKey("Staff", on_delete = models.SET_NULL, null = True, blank = True, related_name = "manager")
 
+	def __str__(self):
+		return self.store_name
+
+
 class Showcase(models.Model):
 	N = "N"
 	A = "A"

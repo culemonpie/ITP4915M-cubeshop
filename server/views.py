@@ -1,7 +1,7 @@
 import django
 from django.shortcuts import render
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse, FileResponse
-from django.contrib.auth import authenticate,login
+from django.contrib.auth import authenticate, login, logout
 from django.core import serializers
 from . import models as m
 import datetime
@@ -42,6 +42,11 @@ def search(request):
 	response["result"] = serializers.serialize('json', [result])
 
 	return JsonResponse(response, safe = True)
+
+def logout_view(request):
+	logout(request)
+	return HttpResponse("")
+
 
 def create_tenant(request):
 	# tenant_id = request.GET.get("tenant_id")
@@ -103,6 +108,22 @@ def update_tenant(request):
 			response["message"] =  str(e)
 			return JsonResponse(response, status = 400)
 
+		return JsonResponse(response, status = 400)
+
+def list_tenant(request):
+	keywords = request.GET.dict()
+	try:
+		tenants = m.Tenant.objects.filter(**keywords)[:20]
+		response = {}
+		response =  serializers.serialize('json', tenants)
+		return JsonResponse(response, safe = False)
+	except Exception as e:
+		response = {}
+		response["status"] = "Failed"
+		response["message"] = str(e)
+		return JsonResponse(response)
+
+
 def get_tenant(request):
 	tenant_id = request.GET.get("tenant_id")
 
@@ -122,20 +143,6 @@ def get_tenant(request):
 	except Exception as e:
 		response = {}
 		response["message"] = str(e)
-		return JsonResponse(response, status = 400)
-
-def list_tenant(request):
-	keywords = request.GET.dict()
-	try:
-		tenants = m.Tenant.objects.filter(**keywords)[:20]
-		response = {}
-		response =  serializers.serialize('json', tenants)
-		return JsonResponse(response, safe = False)
-	except Exception as e:
-		response = {}
-		response["status"] = "Failed"
-		response["message"] = str(e)
-		return JsonResponse(response)
 
 def list_store(request):
 	stores = m.Store.objects.all()
@@ -156,3 +163,13 @@ def list_store(request):
 		r = {}
 		r["message"] = e
 		return JsonResponse(r)
+
+def is_authenticated(request):
+	if request.user.is_authenticated:
+		msg = f"Logged in as {request.user}"
+	else:
+		msg = f"Anonymous"
+	return HttpResponse(msg)
+
+def todo(request):
+	return HttpResponse("Todo")

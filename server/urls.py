@@ -3,16 +3,27 @@ from . import views
 urlpatterns = [
 ### 1 - PUBLIC SITE
 	path('', views.index, name='index'),
-	path('login', views.login_view, name='login'),
-	path('search', views.search, name='search'),
-	path('create_tenant', views.create_tenant, name='create_tenant'),
-	path('get_tenant', views.get_tenant, name='get_tenant'),
-	path('update_tenant', views.update_tenant, name='get_tenant'),
-	path('list_tenant', views.list_tenant, name='list_tenant'),
-	path('list_store', views.list_store, name='list_store'),
-]
+	path('login', views.login_view, name='login'), #1
+	path('search', views.search), #global
+	path('logout', views.logout_view), #global
+	path('list_store', views.list_store), #3, 5
+	path('get_store', views.todo), #3.1
+	path('update_store', views.todo), #3.2
+	path('create_store', views.todo), #3.3
+	path('get_showcase', views.todo), #4.1
+	path('create_showcase', views.todo), #4.2
+	path('update_showcase', views.todo), #4.3
+	path('list_inventory', views.todo), #5.1
+	path('list_stock', views.todo), #6
+	path('get_stock', views.todo), #6.1
+	path('update_stock', views.todo), #6.2, 8
+	path('create_stock', views.todo), #6.3
+	path('get_profile', views.todo), #7
 
-n = [
-	path('search', views.search),
+	###
+	path('create_tenant', views.create_tenant), #9.3
 
+
+
+	path('is_authenticated', views.is_authenticated), #test
 ]
