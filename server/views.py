@@ -152,6 +152,7 @@ def list_store(request):
 			store_dict = {}
 			store_dict["store_id"] = store.store_id
 			store_dict["name"] = store.store_name
+			store_dict["address"] = store.address
 			store_dict["usage"] = "30/32"
 			store_dict["manager"] = "Alan Po"
 			store_dict["is_active"] = store.is_active
@@ -163,6 +164,35 @@ def list_store(request):
 		r = {}
 		r["message"] = e
 		return JsonResponse(r)
+
+def get_store(request):
+	try:
+		store_id = request.GET.get("store_id")
+		store = m.Store.objects.get(store_id= store_id)
+		store_dict = {}
+		store_dict["store_id"] = store.store_id
+		store_dict["name"] = store.store_name
+		store_dict["address"] = store.address
+		store_dict["usage"] = "30/32"
+		store_dict["manager"] = "Alan Po"
+		store_dict["is_active"] = store.is_active
+		json_msg = json.dumps(store_dict, indent=2)
+		return HttpResponse(json_msg, content_type="application/json")
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
+def update_store(request):
+	try:
+		store_id = request.GET.get("store_id")
+		store = m.Store.objects.filter(store_id = store_id) ##should return a queryset with 0 or 1 elements.
+		if store:
+			val = request.GET.copy().dict()
+			store.update(**val)
+			return HttpResponse("")
+		else:
+			return HttpResponse("Object not found", status = 400)
+	except Exception as e:
+		return HttpResponse(e, status = 400)
 
 def is_authenticated(request):
 	if request.user.is_authenticated:

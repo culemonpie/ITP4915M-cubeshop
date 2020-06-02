@@ -38,18 +38,18 @@ class APITest(TestCase):
 	def test_CRU_tenant(self):
 		## create tenant object
 		expected_output = "Success"
-		url = '/create_tenant?tenant_id=2&tenant_name=Jack&phone=12345678&address=hello%020world&balance=0&commission_rate=5&username=jack`&password=test'
+		url = '/create_tenant?tenant_id=2&tenant_name=Jack&phone=12345678&address=hello%020world&balance=0&commission_rate=5&username=jack&password=test'
 		json_response = json.loads(client.get(url).content)
 		self.assertEqual(expected_output, json_response["status"])
 
 		## creating another tenant object (won't be tested)
-		url = '/create_tenant?tenant_id=3&tenant_name=Joey%020Chu&phone=12345678&address=hello%020world&balance=0&commission_rate=5&username=joey`&password=test2'
+		url = '/create_tenant?tenant_id=3&tenant_name=Joey%020Chu&phone=12345678&address=hello%020world&balance=0&commission_rate=5&username=joey&password=test2'
 		client.get(url)
 
 
 		## duplicate creation on id = 2
 		expected_output = "Failed"
-		url = '/create_tenant?tenant_id=2&tenant_name=Robert&phone=12345678&address=hello%020world&balance=0&commission_rate=5&username=jack`&password=test'
+		url = '/create_tenant?tenant_id=2&tenant_name=Robert&phone=12345678&address=hello%020world&balance=0&commission_rate=5&username=jack&password=test'
 		json_response = json.loads(client.get(url).content)
 		self.assertEqual(expected_output, json_response["status"])
 
@@ -94,7 +94,7 @@ class APITest(TestCase):
 		url = '/list_tenant?tenant_id__gte=1'
 		json_response = json.loads(client.get(url).content)
 		self.assertEqual(expected_output, json_response["status"])
-		##C: Incorrect param
+		##C: Incorrect parameter
 		expected_output = "Failed"
 		url = '/list_tenant?wrong=9'
 		json_response = json.loads(client.get(url).content)
