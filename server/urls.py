@@ -19,8 +19,12 @@ urlpatterns = [
 	path('update_stock', views.todo), #6.2, 8
 	path('create_stock', views.todo), #6.3
 	path('get_profile', views.todo), #7
+	path('change_password', views.todo), #7
 
 	###
+	path('list_tenant', views.list_tenant), #9
+	path('get_tenant', views.get_tenant), #9.1
+	path('update_tenant', views.update_tenant), #9.1
 	path('create_tenant', views.create_tenant), #9.3
 
 
