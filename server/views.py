@@ -9,12 +9,14 @@ import json
 
 # Create your views here.
 def index(request):
+	#0
 	if request.user.is_authenticated:
 		return HttpResponse(request.user.username)
 	else:
 		return HttpResponse("Welcome")
 
 def login_view(request):
+	#1
 	username = request.GET.get("username")
 	password = request.GET.get("password")
 	user = authenticate(username = username, password = password)
@@ -33,6 +35,7 @@ def login_view(request):
 
 
 def search(request):
+	#global
 	q = dict(request.GET.get("q"))
 
 	result = user.objects.filter(username__startswith = q)
@@ -44,11 +47,13 @@ def search(request):
 	return JsonResponse(response, safe = True)
 
 def logout_view(request):
+	#global
 	logout(request)
-	return HttpResponse("")
+	return HttpResponse("Success")
 
 
 def create_tenant(request):
+	#3, 5
 	# tenant_id = request.GET.get("tenant_id")
 	tenant_name = request.GET.get("tenant_name")
 	phone = request.GET.get("phone")
@@ -77,7 +82,7 @@ def create_tenant(request):
 
 
 def update_tenant(request):
-	#todo
+	#9.1 - todo
 
 	tenant_id = request.GET.get("tenant_id")
 
@@ -86,7 +91,6 @@ def update_tenant(request):
 			tenant = m.Tenant.objects.filter(tenant_id = tenant_id) ##should return a queryset with 0 or 1 elements.
 			if tenant:
 				val = request.GET.copy().dict()
-				del val["tenant_id"]
 				tenant.update(**val)
 				response = {}
 				response["status"] = "Success"
@@ -111,6 +115,7 @@ def update_tenant(request):
 		return JsonResponse(response, status = 400)
 
 def list_tenant(request):
+	#9 - todo
 	keywords = request.GET.dict()
 	try:
 		tenants = m.Tenant.objects.filter(**keywords)[:20]
@@ -125,6 +130,7 @@ def list_tenant(request):
 
 
 def get_tenant(request):
+	#9.1
 	tenant_id = request.GET.get("tenant_id")
 
 	try:
@@ -145,6 +151,7 @@ def get_tenant(request):
 		response["message"] = str(e)
 
 def list_store(request):
+	#3, 5
 	stores = m.Store.objects.all()
 	msg = []
 	try:
@@ -153,7 +160,7 @@ def list_store(request):
 			store_dict["store_id"] = store.store_id
 			store_dict["name"] = store.store_name
 			store_dict["address"] = store.address
-			store_dict["usage"] = "30/32"
+			store_dict["usage"] = store.get_occupancy() #todo: calculate the maximum capacity
 			store_dict["manager"] = "Alan Po"
 			store_dict["is_active"] = store.is_active
 			msg.append(store_dict)
@@ -166,6 +173,7 @@ def list_store(request):
 		return JsonResponse(r)
 
 def get_store(request):
+	#3.1
 	try:
 		store_id = request.GET.get("store_id")
 		store = m.Store.objects.get(store_id= store_id)
@@ -182,15 +190,79 @@ def get_store(request):
 		return HttpResponse(e, status = 400)
 
 def update_store(request):
+	#3.2
 	try:
 		store_id = request.GET.get("store_id")
 		store = m.Store.objects.filter(store_id = store_id) ##should return a queryset with 0 or 1 elements.
 		if store:
 			val = request.GET.copy().dict()
 			store.update(**val)
-			return HttpResponse("")
+			return HttpResponse("Success")
 		else:
 			return HttpResponse("Object not found", status = 400)
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
+def create_store(request):
+	try:
+		store_id = request.GET.get("store_id")
+		val = request.GET.copy().dict()
+		store = m.Store.objects.create(**val) ##should return a queryset with 0 or 1 elements.
+		return HttpResponse("Success")
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
+def get_showcase(request):
+	try:
+		showcase_id = request.GET.get("showcase_id")
+		showcase = m.Showcase.objects.get(showcase_id = showcase_id) ##should return a queryset with 0 or 1 elements.
+		showcase_dict = {}
+		showcase_dict["showcase_id"] = showcase.showcase_id
+		showcase_dict["type"] = showcase.get_showcase_type_display()
+		json_msg = json.dumps(showcase_dict, indent=2)
+		return HttpResponse(json_msg, content_type="application/json")
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
+def create_showcase(request):
+	try:
+		store = m.Showcase.objects.create(**request.GET.dict()) ##should return a queryset with 0 or 1 elements.
+		return HttpResponse(store.store_id)
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
+
+def update_showcase(request):
+	try:
+		showcase_id = request.GET.get("showcase_id")
+		showcase = m.Showcase.objects.filter(showcase_id = showcase_id) ##should return a queryset with 0 or 1 elements.
+		if showcase:
+			val = request.GET.copy().dict()
+			showcase.update(**val)
+			return HttpResponse("Success")
+		else:
+			return HttpResponse("Object not found", status = 400)
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
+def create_staff(request):
+	'''
+	username
+	password??
+	current_salary
+	staff_type
+	store (optional)
+	'''
+	pass
+
+def change_password(request):
+	try:
+		username = request.GET.get("username")
+		password = request.GET.get("password")
+		user = m.User.objects.get(username = username)
+		user.set_password(password)
+		user.save()
+		return HttpResponse("Success")
 	except Exception as e:
 		return HttpResponse(e, status = 400)
 

@@ -40,6 +40,11 @@ class Tenant(models.Model):
 	balance = models.DecimalField(max_digits = 6, decimal_places = 1, default = 0)
 	commission_rate = models.DecimalField(max_digits = 6, decimal_places = 1, default = 5)
 	#user = models.OneToOneField(User, on_delete = models.CASCADE) #user_id
+	def __str__(self):
+		return self.tenant_name
+
+	def get_sales(self):
+		return 0
 
 class Store(models.Model):
 	store_id = models.CharField(primary_key = True, max_length = 255)
@@ -48,9 +53,16 @@ class Store(models.Model):
 	is_active = models.BooleanField(default = True)
 	manager = models.ForeignKey("Staff", on_delete = models.SET_NULL, null = True, blank = True, related_name = "manager")
 
+	showcase_index = models.PositiveIntegerField(default=0) ## Increment the counter whenever a showcase is added
+
 	def __str__(self):
 		return self.store_name
 
+	def get_occupancy(self):
+		cases = self.showcase_set.all()
+		occupied_cases = cases.filter(showcase_type = Showcase.N)
+
+		return f"{occupied_cases.count()}/{cases.count()}"#
 
 class Showcase(models.Model):
 	N = "N"
@@ -68,11 +80,21 @@ class Showcase(models.Model):
 	}
 
 
-	showcase_id = models.CharField(max_length = 255, primary_key = True)
+	showcase_id = models.CharField(max_length = 255, primary_key = True, blank = True)
 	from_tenant = models.ForeignKey("Tenant", on_delete = models.CASCADE, null = True)
 	store = models.ForeignKey("Store", on_delete = models.CASCADE)
 	showcase_type = models.CharField(choices = sorted(rental_types), max_length = 255, default = N )
 
+	def save(self, *args, **kwargs):
+		if not self.showcase_id:
+			self.store.showcase_index += 1
+			self.store.save()
+			self.showcase_id = f"{self.store.store_id}{str(self.store.showcase_index).zfill(3)}"
+			print (self.showcase_id)
+		super().save(*args, **kwargs)
+
+	def __str__(self):
+		return self.showcase_id
 
 class ShowcaseRental(models.Model):
 	N = "N"
@@ -122,6 +144,8 @@ class Inventory(models.Model):
 	remark = models.TextField(max_length = 4096)
 	from_stock = models.ForeignKey("Stock", on_delete = models.CASCADE)
 	from_showcase = models.ForeignKey("Showcase", on_delete = models.CASCADE)
+
+
 
 class Receipt(models.Model):
 	receipt_id = models.IntegerField(primary_key = True)
