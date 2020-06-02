@@ -30,6 +30,9 @@ class Staff(models.Model):
 	staff_type = models.CharField(choices = sorted(staff_types), max_length = 255)
 	store = models.ForeignKey("Store", on_delete = models.CASCADE, related_name = "works_in") #store_id
 
+	def __str__(self):
+		return self.staff_name
+
 class Tenant(models.Model):
 	tenant_id = models.IntegerField(primary_key = True)
 	user = models.OneToOneField(User, on_delete = models.CASCADE)
@@ -79,11 +82,11 @@ class Showcase(models.Model):
 		(V, "Vacant"),
 	}
 
-
 	showcase_id = models.CharField(max_length = 255, primary_key = True, blank = True)
 	from_tenant = models.ForeignKey("Tenant", on_delete = models.CASCADE, null = True)
 	store = models.ForeignKey("Store", on_delete = models.CASCADE)
 	showcase_type = models.CharField(choices = sorted(rental_types), max_length = 255, default = N )
+	rental_index = models.PositiveIntegerField(default = 0)
 
 	def save(self, *args, **kwargs):
 		if not self.showcase_id:
@@ -114,9 +117,20 @@ class ShowcaseRental(models.Model):
 	starting_date = models.DateField()
 	ending_date = models.DateField()
 	monthly_rent = models.DecimalField(max_digits = 6, decimal_places = 1)
-	remark = models.TextField(max_length = 4096)
+	remark = models.TextField(max_length = 4096, null = True, blank = True)
 	showcase_type = models.CharField(choices = sorted(rental_types), max_length = 255, default = N )
 	showcase = models.ForeignKey("Showcase", on_delete = models.CASCADE, )
+	name = models.CharField(max_length=255, blank = True)
+
+	def save(self, *args, **kwargs):
+		if not self.pk:
+			self.showcase.rental_index += 1
+			self.showcase.save()
+			self.name = f"{self.showcase.showcase_id}-{self.showcase.rental_index}"
+		super().save(*args, **kwargs)
+
+	def __str__(self):
+		return self.name
 
 class Stock(models.Model):
 	stock_types = {
@@ -137,22 +151,32 @@ class Stock(models.Model):
 	description = models.TextField(max_length = 4096)
 	is_on_hold = models.BooleanField()
 
+	def __str__(self):
+		return self.name
+
 class Inventory(models.Model):
-	inventory_id = models.IntegerField(primary_key = True)
+	inventory_id = models.AutoField(primary_key = True) ##not used
 	unit_price = models.DecimalField(max_digits = 6, decimal_places = 1)
 	stock_in_qty = models.PositiveIntegerField()
-	remark = models.TextField(max_length = 4096)
+	remark = models.TextField(max_length = 4096, null = True, blank = True)
 	from_stock = models.ForeignKey("Stock", on_delete = models.CASCADE)
 	from_showcase = models.ForeignKey("Showcase", on_delete = models.CASCADE)
 
+	class Meta:
+		verbose_name_plural = "Inventories"
+		constraints = [
+			models.UniqueConstraint(fields=['from_stock', 'from_showcase'], name='unique_stock_per_showcase' )
+		]
 
+	def __str__(self):
+		return f"{self.from_showcase.showcase_id}-{self.from_stock.stock_code}"
 
 class Receipt(models.Model):
 	receipt_id = models.IntegerField(primary_key = True)
 	grand_total = models.DecimalField(max_digits = 6, decimal_places = 1)
 	time = models.DateTimeField(auto_now_add = True)
 	tender = models.DecimalField(max_digits = 6, decimal_places = 1)
-	change = models.DecimalField(max_digits = 6, decimal_places = 1)
+	change = models.DecimalField(max_digits = 6, decimal_places = 1, blank = True)
 	responsible = models.ForeignKey("Staff", on_delete = models.CASCADE)
 	is_cancelled = models.BooleanField(default = False)
 
