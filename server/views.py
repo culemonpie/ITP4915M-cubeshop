@@ -26,7 +26,7 @@ def login_view(request):
 		response = {}
 		response["username"] = request.user.username
 		response["user_id"] = request.user.id
-		response["user_type"] = 1
+		response["user_type"] = "Manager"
 		return JsonResponse(response)
 	else:
 		response = {}
@@ -54,7 +54,7 @@ def logout_view(request):
 
 def create_tenant(request):
 	#3, 5
-	tenant_id = request.GET.get("tenant_id")
+	# tenant_id = request.GET.get("tenant_id")
 	tenant_name = request.GET.get("tenant_name")
 	phone = request.GET.get("phone")
 	address = request.GET.get("address")
@@ -63,18 +63,18 @@ def create_tenant(request):
 	commission_rate = request.GET.get("commission_rate")
 
 	username = request.GET.get("username")
-	password = request.GET.get("password")
+	password = django.utils.crypto.get_random_string(length=6, allowed_chars='1234567890')
 
 	with django.db.transaction.atomic():
 		try:
-			user = m.User(username = username, password = password)
+			user = m.User.objects.create_user(username = username, password = password)
 			user.save()
 			tenant = m.Tenant(tenant_id = user.id, tenant_name = tenant_name, phone = phone, address = address, commission_rate = commission_rate, user = user)
 			tenant.save()
-			# tenant = m.Tenant.objects.get(tenant_id = tenant_id)
 
 			response = {}
 			response["tenant_id"] = tenant.tenant_id
+			response["password"] = password
 			return JsonResponse(response)
 		except Exception as e:
 			return HttpResponse(e, status = 400)
@@ -256,11 +256,18 @@ def create_staff(request):
 
 def change_password(request):
 	try:
-		password = request.GET.get("password")
-		request.user.set_password(password)
-		user.save()
-		return HttpResponse("Success")
+		user = request.user
+		original_password = request.GET.get("original_password")
+		new_password = request.GET.get("new_password")
+		print (f"username: {user.username}, password: {original_password}, new_password: {new_password}")
+		if authenticate(username = user.username, password = original_password):
+			user.set_password(new_password)
+			user.save()
+			return HttpResponse("Success")
+		else:
+			return HttpResponse("Original password is incorrect.", status = 400)
 	except Exception as e:
+		print (e)
 		return HttpResponse(e, status = 400)
 
 def is_authenticated(request):
