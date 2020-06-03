@@ -10,7 +10,6 @@ class Staff(models.Model):
 	SLM = "IT"
 	D = "D"
 
-
 	staff_types = (
 		(PTS, "Part time staff"),
 		(FTS, "Full time staff"),
@@ -22,13 +21,13 @@ class Staff(models.Model):
 
 
 	staff_id = models.IntegerField(primary_key = True)
-	user = models.OneToOneField(User, on_delete = models.CASCADE)
 	staff_name = models.CharField(max_length = 255)
+	user = models.OneToOneField(User, on_delete = models.CASCADE)
 	is_active = models.BooleanField(default = True)
 	current_salary = models.DecimalField(max_digits = 6, decimal_places = 1)
 	date_joined = models.DateField(auto_now_add = True)
 	staff_type = models.CharField(choices = sorted(staff_types), max_length = 255)
-	store = models.ForeignKey("Store", on_delete = models.CASCADE, related_name = "works_in") #store_id
+	store = models.ForeignKey("Store", null = True, on_delete = models.CASCADE, related_name = "works_in") #store_id
 
 	def __str__(self):
 		return self.staff_name

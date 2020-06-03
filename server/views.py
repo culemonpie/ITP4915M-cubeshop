@@ -54,12 +54,9 @@ def logout_view(request):
 
 def create_tenant(request):
 	#3, 5
-	# tenant_id = request.GET.get("tenant_id")
 	tenant_name = request.GET.get("tenant_name")
 	phone = request.GET.get("phone")
 	address = request.GET.get("address")
-	#date_joined = request.GET.get("tenant_id")
-	# balance = request.GET.get("balance")
 	commission_rate = request.GET.get("commission_rate")
 
 	username = request.GET.get("username")
@@ -127,6 +124,10 @@ def list_tenant(request):
 		response["message"] = str(e)
 		return JsonResponse(response)
 
+def list_store_temp(request):
+	stores = m.Store.objects.all()
+	response = [s.store_id for s in stores]
+	return JsonResponse(response, safe = False)
 
 def get_tenant(request):
 	#9.1
@@ -203,6 +204,7 @@ def update_store(request):
 		return HttpResponse(e, status = 400)
 
 def create_store(request):
+	#3.3
 	try:
 		store_id = request.GET.get("store_id")
 		val = request.GET.copy().dict()
@@ -212,6 +214,7 @@ def create_store(request):
 		return HttpResponse(e, status = 400)
 
 def get_showcase(request):
+	#4.1
 	try:
 		showcase_id = request.GET.get("showcase_id")
 		showcase = m.Showcase.objects.get(showcase_id = showcase_id) ##should return a queryset with 0 or 1 elements.
@@ -224,6 +227,7 @@ def get_showcase(request):
 		return HttpResponse(e, status = 400)
 
 def create_showcase(request):
+	#4.2
 	try:
 		store = m.Showcase.objects.create(**request.GET.dict()) ##should return a queryset with 0 or 1 elements.
 		return HttpResponse(store.store_id)
@@ -232,6 +236,7 @@ def create_showcase(request):
 
 
 def update_showcase(request):
+	#4.3
 	try:
 		showcase_id = request.GET.get("showcase_id")
 		showcase = m.Showcase.objects.filter(showcase_id = showcase_id) ##should return a queryset with 0 or 1 elements.
@@ -244,7 +249,25 @@ def update_showcase(request):
 	except Exception as e:
 		return HttpResponse(e, status = 400)
 
+def get_stock(request):
+	try:
+		stock_code = request.GET.get("stock_id")
+		stock = m.Stock.objects.get(stock_code = stock_code)
+
+		response = {}
+		response["stock_code"] = stock.stock_code
+		response["name"] = stock.name
+		response["unit_price"] = stock.unit_price
+		response["description"] = stock.description
+		response["is_on_hold"] = stock.is_on_hold
+		return JsonResponse(response, status = 400)
+
+
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
 def create_staff(request):
+	#11.3
 	'''
 	username
 	password??
@@ -252,11 +275,52 @@ def create_staff(request):
 	staff_type
 	store (optional)
 	'''
-	pass
+	username = request.GET.get("username")
+	current_salary = request.GET.get("current_salary")
+	staff_name = request.GET.get("staff_name")
+	staff_type = request.GET.get("staff_type")
+	store_id = request.GET.get("store")
+
+	password = django.utils.crypto.get_random_string(length=6, allowed_chars='1234567890')
+
+	with django.db.transaction.atomic():
+		try:
+			user = m.User.objects.create_user(username = username, password = password)
+			user.save()
+			staff = m.Staff(staff_id = user.id, staff_name = staff_name,  user = user, current_salary = current_salary, staff_type = staff_type, store_id = store_id)
+			staff.save()
+
+			response = {}
+			response["staff_id"] = staff.staff_id
+			response["password"] = password
+			return JsonResponse(response)
+		except Exception as e:
+			return HttpResponse(e, status = 400)
+
+def get_staff(request):
+	#11.1
+	staff_id = request.GET.get("staff_id")
+
+	try:
+		staff = m.Staff.objects.get(staff_id = staff_id)
+		response = {}
+		response["status"] = "Success"
+		response["staff_id"] =  staff.staff_id
+		response["staff_name"] =  staff.staff_name
+		response["staff_type"] =  staff.get_staff_type_display()
+		return JsonResponse(response)
+	except Exception as e:
+		response = {}
+		response["message"] = str(e)
+		return JsonResponse(response)
+
 
 def change_password(request):
+	#7.4
 	try:
 		user = request.user
+		if not request.user.is_authenticated:
+			return HttpResponse("User not logged in", status = 400)
 		original_password = request.GET.get("original_password")
 		new_password = request.GET.get("new_password")
 		print (f"username: {user.username}, password: {original_password}, new_password: {new_password}")
