@@ -54,7 +54,7 @@ def logout_view(request):
 
 def create_tenant(request):
 	#3, 5
-	# tenant_id = request.GET.get("tenant_id")
+	tenant_id = request.GET.get("tenant_id")
 	tenant_name = request.GET.get("tenant_name")
 	phone = request.GET.get("phone")
 	address = request.GET.get("address")
@@ -69,16 +69,15 @@ def create_tenant(request):
 		try:
 			user = m.User(username = username, password = password)
 			user.save()
-			tenant = m.Tenant(tenant_name = tenant_name, phone = phone, address = address, commission_rate = commission_rate, user = user)
+			tenant = m.Tenant(tenant_id = user.id, tenant_name = tenant_name, phone = phone, address = address, commission_rate = commission_rate, user = user)
 			tenant.save()
 			# tenant = m.Tenant.objects.get(tenant_id = tenant_id)
 
 			response = {}
+			response["tenant_id"] = tenant.tenant_id
 			return JsonResponse(response)
 		except Exception as e:
-			response = {}
-			response["message"] = str(e)
-			return JsonResponse(response, status = 400)
+			return HttpResponse(e, status = 400)
 
 
 def update_tenant(request):
@@ -257,10 +256,8 @@ def create_staff(request):
 
 def change_password(request):
 	try:
-		username = request.GET.get("username")
 		password = request.GET.get("password")
-		user = m.User.objects.get(username = username)
-		user.set_password(password)
+		request.user.set_password(password)
 		user.save()
 		return HttpResponse("Success")
 	except Exception as e:
