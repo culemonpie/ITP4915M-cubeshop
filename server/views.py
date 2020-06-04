@@ -7,6 +7,14 @@ from . import models as m
 import datetime
 import json
 
+def get_user_subclass(user):
+	try:
+		staff = m.Staff.object.get(id = user.id)
+		return staff
+	except Exception as e:
+		tenant = m.Tenant.object.get(id = user.id)
+		return tenant
+
 # Create your views here.
 def index(request):
 	#0
@@ -136,19 +144,18 @@ def get_tenant(request):
 	try:
 		tenant = m.Tenant.objects.get(tenant_id = tenant_id)
 		response = {}
-		response = {}
-		response["status"] = "Success"
 		response["tenant_id"] =  tenant.tenant_id
 		response["tenant_name"] =  tenant.tenant_name
 		response["phone"] =  tenant.phone
 		response["address"] =  tenant.address
-		response["date_joined"] =  tenant.date_joined
-		response["balance"] =  tenant.balance
-		response["commission_rate"] =  tenant.commission_rate
-		return JsonResponse(response)
+		response["date_joined"] =  str(tenant.date_joined)
+		response["balance"] =  float(tenant.balance)
+		response["commission_rate"] =  float(tenant.commission_rate)
+		response["is_active"] =  True #tenant.is_active
+		json_msg = json.dumps(response, indent=2)
+		return HttpResponse(json_msg, content_type="application/json")
 	except Exception as e:
-		response = {}
-		response["message"] = str(e)
+		return HttpResponse(e, status  = 400)
 
 def list_store(request):
 	#3, 5
@@ -160,11 +167,16 @@ def list_store(request):
 			store_dict["store_id"] = store.store_id
 			store_dict["name"] = store.store_name
 			store_dict["address"] = store.address
-			store_dict["usage"] = store.get_occupancy() #todo: calculate the maximum capacity
-			store_dict["manager"] = "Alan Po"
+			store_dict["usage"] = store.get_occupancy()
+			if store.manager:
+				store_dict["manager"] = store.manager.staff_name
+			else:
+				store_dict["manager"] = ""
 			store_dict["is_active"] = store.is_active
 			msg.append(store_dict)
-		json_msg = json.dumps(msg, indent=2)
+		response = {}
+		response["result"] = msg
+		json_msg = json.dumps(response, indent=2)
 		return HttpResponse(json_msg, content_type="application/json")
 	except Exception as e:
 		return HttpResponse(e)
@@ -229,11 +241,10 @@ def get_showcase(request):
 def create_showcase(request):
 	#4.2
 	try:
-		store = m.Showcase.objects.create(**request.GET.dict()) ##should return a queryset with 0 or 1 elements.
-		return HttpResponse(store.store_id)
+		showcase = m.Showcase.objects.create(**request.GET.dict()) ##should return a queryset with 0 or 1 elements.
+		return HttpResponse(showcase.showcase_id)
 	except Exception as e:
 		return HttpResponse(e, status = 400)
-
 
 def update_showcase(request):
 	#4.3
@@ -262,15 +273,69 @@ def get_stock(request):
 		response["is_on_hold"] = stock.is_on_hold
 		return JsonResponse(response, status = 400)
 
-
 	except Exception as e:
 		return HttpResponse(e, status = 400)
 
+
+def create_stock(request):
+	#4.2
+	try:
+		store = m.Stock.objects.create(**request.GET.dict()) ##should return a queryset with 0 or 1 elements.
+		return HttpResponse(store.store_id)
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
+def update_stock(request):
+	#4.3
+	try:
+		stock_id = request.GET.get("stock_id")
+		stock = m.stock.objects.filter(stock_id = stock_id) ##should return a queryset with 0 or 1 elements.
+		if stock:
+			val = request.GET.copy().dict()
+			stock.update(**val)
+			return HttpResponse("Success")
+		else:
+			return HttpResponse("Object not found", status = 400)
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
+def get_profile(request):
+	try:
+		if request.user.is_authenticated:
+			response = {
+				"name": request.user.username,
+				# "date_joined": get_user_subclass(request.user).date_joined
+			}
+
+			return JsonResponse(response)
+		else:
+			return HttpResponse("User not logged in", status = 400)
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
+def get_staff(request):
+	#11.1
+	staff_id = request.GET.get("staff_id")
+
+	try:
+		staff = m.Staff.objects.get(staff_id = staff_id)
+		response = {}
+		response["status"] = "Success"
+		response["staff_id"] =  staff.staff_id
+		response["staff_name"] =  staff.staff_name
+		response["salary"] =  staff.current_salary
+		response["staff_type"] =  staff.get_staff_type_display()
+		return JsonResponse(response)
+	except Exception as e:
+		response = {}
+		response["message"] = str(e)
+		return JsonResponse(response)
+
+
 def create_staff(request):
-	#11.3
+	#11.2
 	'''
 	username
-	password??
 	current_salary
 	staff_type
 	store (optional)
@@ -297,22 +362,35 @@ def create_staff(request):
 		except Exception as e:
 			return HttpResponse(e, status = 400)
 
-def get_staff(request):
-	#11.1
+
+def update_staff(request):
+	#11.3
+	'''
+	username
+	current_salary
+	staff_type
+	store (optional)
+	'''
 	staff_id = request.GET.get("staff_id")
 
-	try:
-		staff = m.Staff.objects.get(staff_id = staff_id)
-		response = {}
-		response["status"] = "Success"
-		response["staff_id"] =  staff.staff_id
-		response["staff_name"] =  staff.staff_name
-		response["staff_type"] =  staff.get_staff_type_display()
-		return JsonResponse(response)
-	except Exception as e:
-		response = {}
-		response["message"] = str(e)
-		return JsonResponse(response)
+	current_salary = request.GET.get("current_salary")
+	staff_name = request.GET.get("staff_name")
+	staff_type = request.GET.get("staff_type")
+	store_id = request.GET.get("store")
+
+	with django.db.transaction.atomic():
+		try:
+			user = m.User.objects.get(id = staff_id) ## not used?
+			staff = m.Staff.objects.get(staff_id = user.id)
+			if current_salary: staff.current_salary = current_salary
+			if staff_type: staff.staff_type = staff_type
+			if store_id: staff.store_id = store_id
+			staff.save()
+			response = {}
+			response["staff_id"] = staff.staff_id
+			return JsonResponse(response)
+		except Exception as e:
+			return HttpResponse(e, status = 400)
 
 
 def change_password(request):
@@ -333,6 +411,9 @@ def change_password(request):
 	except Exception as e:
 		print (e)
 		return HttpResponse(e, status = 400)
+
+def checkout(request):
+	pass
 
 def is_authenticated(request):
 	if request.user.is_authenticated:

@@ -18,8 +18,8 @@ urlpatterns = [
 	path('get_stock', views.get_stock), #6.1 OK
 	path('update_stock', views.todo), #6.2, 8
 	path('create_stock', views.todo), #6.3
-	path('get_profile', views.todo), #7
-	path('update_profile', views.todo), #7.x
+	path('get_profile', views.get_profile), #7
+	path('update_profile', views.todo), #suspended
 	path('change_password', views.change_password), #7.4 OK
 	path('checkout', views.todo), #8
 
@@ -33,7 +33,7 @@ urlpatterns = [
 	path('list_staff', views.todo), #11
 	path('get_staff', views.get_staff), #11.1 OK
 	path('create_staff', views.create_staff), #11.2 OK
-	path('update_staff', views.todo), #11.3
+	path('update_staff', views.update_staff), #11.3 OK
 
 	path('list_receipt', views.todo), #12
 	path('get_receipt', views.todo), #12.1

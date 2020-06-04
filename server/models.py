@@ -183,7 +183,7 @@ class Receipt(models.Model):
 		return str(self.receipt_id).zfill(6)
 
 class Purchase(models.Model):
-	purchase_id = models.IntegerField(primary_key = True)
+	purchase_id = models.AutoField(primary_key = True)
 	quantity = models.IntegerField()
 	amount = models.DecimalField(max_digits = 6, decimal_places = 1)
 	remark = models.TextField(max_length = 4096)
