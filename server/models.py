@@ -143,14 +143,15 @@ class Stock(models.Model):
 		(6, "Other"),
 	}
 
-	stock_code = models.CharField(primary_key = True, max_length = 255)
+
+	stock_code = models.CharField(primary_key = True, max_length = 255) #will be changed to IntegerField
 	name = models.CharField(max_length = 255)
 
 	unit_price = models.DecimalField(max_digits = 6, decimal_places = 1)
 	# current_rent = models.DecimalField(max_digits = 6, decimal_places = 1)
 	##image_url
 	description = models.TextField(max_length = 4096)
-	is_on_hold = models.BooleanField()
+	is_on_hold = models.BooleanField(default = False)
 
 	def __str__(self):
 		return self.name
@@ -173,7 +174,7 @@ class Inventory(models.Model):
 		return f"{self.from_showcase.showcase_id}-{self.from_stock.stock_code}"
 
 class Receipt(models.Model):
-	receipt_id = models.IntegerField(primary_key = True)
+	receipt_id = models.AutoField(primary_key = True)
 	grand_total = models.DecimalField(max_digits = 6, decimal_places = 1)
 	time = models.DateTimeField(auto_now_add = True)
 	tender = models.DecimalField(max_digits = 6, decimal_places = 1)

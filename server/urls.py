@@ -15,15 +15,17 @@ urlpatterns = [
 	path('create_showcase', views.create_showcase), #4.2 OK
 	path('update_showcase', views.update_showcase), #4.3 OK
 	path('rent_showcase', views.rent_showcase), #4.4
-	path('list_inventory', views.todo), #5.1
-	path('list_stock', views.todo), #6
+	path('set_showcase_status', views.set_showcase_status), #4.4
+	path('list_inventory', views.list_inventory), #5, 5.1
+	path('change_inventory_quantity', views.change_inventory_quantity), #5.x
+	path('list_stock', views.list_stock), #6 OK
 	path('get_stock', views.get_stock), #6.1 OK
-	path('update_stock', views.todo), #6.2, 8
-	path('create_stock', views.todo), #6.3
+	path('update_stock', views.update_stock), #6.2, 8
+	path('create_stock', views.create_stock), #6.3
 	path('get_profile', views.get_profile), #7
 	path('update_profile', views.todo), #suspended
 	path('change_password', views.change_password), #7.4 OK
-	path('checkout', views.todo), #8
+	path('checkout', views.checkout), #8 #todo
 
 	path('list_tenant', views.list_tenant), #9
 	path('get_tenant', views.get_tenant), #9.1
