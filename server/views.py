@@ -127,10 +127,7 @@ def list_tenant(request):
 		response =  serializers.serialize('json', tenants)
 		return JsonResponse(response, safe = False)
 	except Exception as e:
-		response = {}
-		response["status"] = "Failed"
-		response["message"] = str(e)
-		return JsonResponse(response)
+		return HttpResponse(str(e))
 
 def list_store_temp(request):
 	stores = m.Store.objects.all()
@@ -193,13 +190,39 @@ def get_store(request):
 		store_dict["store_id"] = store.store_id
 		store_dict["name"] = store.store_name
 		store_dict["address"] = store.address
-		store_dict["usage"] = "30/32"
-		store_dict["manager"] = "Alan Po"
+		store_dict["usage"] = store.get_occupancy()
+		if store.manager:
+			store_dict["manager"] = store.manager.staff_name
+		else:
+			store_dict["manager"] = ""
 		store_dict["is_active"] = store.is_active
 		json_msg = json.dumps(store_dict, indent=2)
 		return HttpResponse(json_msg, content_type="application/json")
 	except Exception as e:
 		return HttpResponse(e, status = 400)
+
+def list_showcase(request):
+	#3.1, 4
+	showcases = m.Showcase.objects.all()
+	msg = []
+	try:
+		for showcase in showcases:
+			showcase_dict = {}
+			showcase_dict["showcase_id"] = showcase.showcase_id
+			showcase_dict["type"] = showcase.get_showcase_type_display()
+			showcase_dict["rent"] = 0 #todo
+			json_msg = json.dumps(showcase_dict, indent=2)
+			msg.append(showcase_dict)
+		response = {}
+		response["result"] = msg
+		json_msg = json.dumps(response, indent=2)
+		return HttpResponse(json_msg, content_type="application/json")
+	except Exception as e:
+		return HttpResponse(e)
+		r = {}
+		r["message"] = e
+		return JsonResponse(r)
+
 
 def update_store(request):
 	#3.2
@@ -233,6 +256,7 @@ def get_showcase(request):
 		showcase_dict = {}
 		showcase_dict["showcase_id"] = showcase.showcase_id
 		showcase_dict["type"] = showcase.get_showcase_type_display()
+		showcase_dict["rent"] = 0
 		json_msg = json.dumps(showcase_dict, indent=2)
 		return HttpResponse(json_msg, content_type="application/json")
 	except Exception as e:
