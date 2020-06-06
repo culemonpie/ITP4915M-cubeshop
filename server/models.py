@@ -118,7 +118,7 @@ class ShowcaseRental(models.Model):
 	ending_date = models.DateField()
 	monthly_rent = models.DecimalField(max_digits = 6, decimal_places = 1)
 	remark = models.TextField(max_length = 4096, null = True, blank = True)
-	showcase_type = models.CharField(choices = sorted(rental_types), max_length = 255, default = ShowcaseRental.N )
+	showcase_type = models.CharField(choices = sorted(rental_types), max_length = 255, default = N )
 	showcase = models.ForeignKey("Showcase", on_delete = models.CASCADE, )
 	tenant = models.ForeignKey("Tenant", on_delete = models.CASCADE, null = True, blank = True)
 	name = models.CharField(max_length=255, blank = True)
