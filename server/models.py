@@ -84,7 +84,8 @@ class Showcase(models.Model):
 	showcase_id = models.CharField(max_length = 255, primary_key = True, blank = True)
 	from_tenant = models.ForeignKey("Tenant", on_delete = models.CASCADE, null = True)
 	store = models.ForeignKey("Store", on_delete = models.CASCADE)
-	showcase_type = models.CharField(choices = sorted(rental_types), max_length = 255, default = N )
+	showcase_type = models.CharField(choices = sorted(rental_types), max_length = 255, default = V )
+	# current_rent = models.DecimalField(max_digits = 6, decimal_places = 1, default = 0)
 	rental_index = models.PositiveIntegerField(default = 0)
 
 	def save(self, *args, **kwargs):
@@ -117,8 +118,9 @@ class ShowcaseRental(models.Model):
 	ending_date = models.DateField()
 	monthly_rent = models.DecimalField(max_digits = 6, decimal_places = 1)
 	remark = models.TextField(max_length = 4096, null = True, blank = True)
-	showcase_type = models.CharField(choices = sorted(rental_types), max_length = 255, default = N )
+	showcase_type = models.CharField(choices = sorted(rental_types), max_length = 255, default = ShowcaseRental.N )
 	showcase = models.ForeignKey("Showcase", on_delete = models.CASCADE, )
+	tenant = models.ForeignKey("Tenant", on_delete = models.CASCADE, null = True, blank = True)
 	name = models.CharField(max_length=255, blank = True)
 
 	def save(self, *args, **kwargs):

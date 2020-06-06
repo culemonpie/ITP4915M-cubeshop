@@ -284,7 +284,18 @@ def update_showcase(request):
 	except Exception as e:
 		return HttpResponse(e, status = 400)
 
+def rent_showcase(request):
+	try:
+		showcase_rental = m.ShowcaseRental.objects.create(**request.GET.dict()) ##should return a queryset with 0 or 1 elements.
+		showcase_rental.save()
+		return HttpResponse(showcase_rental.id)
+
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
+
 def get_stock(request):
+	#6.1
 	try:
 		stock_code = request.GET.get("stock_id")
 		stock = m.Stock.objects.get(stock_code = stock_code)
@@ -302,10 +313,10 @@ def get_stock(request):
 
 
 def create_stock(request):
-	#4.2
+	#4.2 Todo
 	try:
-		store = m.Stock.objects.create(**request.GET.dict()) ##should return a queryset with 0 or 1 elements.
-		return HttpResponse(store.store_id)
+		stock = m.Stock.objects.create(**request.GET.dict()) ##should return a queryset with 0 or 1 elements.
+		return HttpResponse(stock.store_id)
 	except Exception as e:
 		return HttpResponse(e, status = 400)
 
