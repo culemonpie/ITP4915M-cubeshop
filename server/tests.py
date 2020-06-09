@@ -49,7 +49,7 @@ class APITest(TestCase):
 
 		## duplicate creation on id = 2
 		expected_output = "Failed"
-		url = '/create_tenant?tenant_id=2&tenant_name=Robert&phone=12345678&address=hello%020world&balance=0&commission_rate=5&username=jack&password=test'
+		url = '/create_tenant?tenant_id=2&tenant_name=Robert&phone=12345678&address=hello%020world&balance=0&commission_rate=5&username=jack'
 		json_response = json.loads(client.get(url).content)
 		self.assertEqual(expected_output, json_response["status"])
 

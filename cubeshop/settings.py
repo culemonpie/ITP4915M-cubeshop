@@ -138,3 +138,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 STATIC_ROOT = '/home/bitnami/cubeshop/static'
+
+FIXTURE_DIRS = (
+	'/fixtures',
+)

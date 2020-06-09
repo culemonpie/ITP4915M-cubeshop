@@ -82,7 +82,7 @@ class Showcase(models.Model):
 	}
 
 	showcase_id = models.CharField(max_length = 255, primary_key = True, blank = True)
-	from_tenant = models.ForeignKey("Tenant", on_delete = models.CASCADE, null = True)
+	from_tenant = models.ForeignKey("Tenant", on_delete = models.CASCADE, null = True) #to be renamed: owner
 	store = models.ForeignKey("Store", on_delete = models.CASCADE)
 	showcase_type = models.CharField(choices = sorted(rental_types), max_length = 255, default = V )
 	# current_rent = models.DecimalField(max_digits = 6, decimal_places = 1, default = 0)
@@ -114,14 +114,15 @@ class ShowcaseRental(models.Model):
 		(V, "Vacant"),
 	}
 
+	name = models.CharField(max_length=255, blank = True)
 	starting_date = models.DateField()
 	ending_date = models.DateField()
 	monthly_rent = models.DecimalField(max_digits = 6, decimal_places = 1)
-	remark = models.TextField(max_length = 4096, null = True, blank = True)
 	showcase_type = models.CharField(choices = sorted(rental_types), max_length = 255, default = N )
 	showcase = models.ForeignKey("Showcase", on_delete = models.CASCADE, )
 	tenant = models.ForeignKey("Tenant", on_delete = models.CASCADE, null = True, blank = True)
-	name = models.CharField(max_length=255, blank = True)
+	remark = models.TextField(max_length = 4096, null = True, blank = True)
+	responsible = models.ForeignKey(User, null = True, on_delete = models.SET_NULL)
 
 	def save(self, *args, **kwargs):
 		if not self.pk:
@@ -144,11 +145,11 @@ class Stock(models.Model):
 	}
 
 
-	stock_code = models.CharField(primary_key = True, max_length = 255) #will be changed to IntegerField
+	stock_id = models.AutoField(primary_key = True)
+	# stock_code = models.CharField(primary_key = True, max_length = 255) #renamed to stock_id
 	name = models.CharField(max_length = 255)
 
 	unit_price = models.DecimalField(max_digits = 6, decimal_places = 1)
-	# current_rent = models.DecimalField(max_digits = 6, decimal_places = 1)
 	##image_url
 	description = models.TextField(max_length = 4096)
 	is_on_hold = models.BooleanField(default = False)

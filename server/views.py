@@ -4,6 +4,7 @@ from django.http import HttpResponseRedirect, HttpResponse, JsonResponse, FileRe
 from django.contrib.auth import authenticate, login, logout
 from django.core import serializers
 from . import models as m
+from django.db.models import Q
 import datetime
 import json
 
@@ -34,7 +35,7 @@ def login_view(request):
 		response = {}
 		response["username"] = request.user.username
 		response["user_id"] = request.user.id
-		response["user_type"] = "Manager"
+		response["user_type"] = ""
 		return JsonResponse(response)
 	else:
 		response = {}
@@ -107,27 +108,39 @@ def update_tenant(request):
 				response["commission_rate"] =  tenant.commission_rate
 				return JsonResponse(response)
 			else:
-				response = {}
-				response["message"] =  "Matching query does not exist"
-				return JsonResponse(response, status = 400)
+				message =  "Matching query does not exist"
+				return HttpResponse(message, status = 400)
+
 		except Exception as e:
-			response = {}
-			response["status"] = "Failed"
-			response["message"] =  str(e)
-			return JsonResponse(response, status = 400)
+			return HttpResponse(e, status = 400)
+
 
 		return JsonResponse(response, status = 400)
 
 def list_tenant(request):
 	#9 - todo
-	keywords = request.GET.dict()
+	#3, 5
+	tenants = m.Tenant.objects.all()
+	msg = []
 	try:
-		tenants = m.Tenant.objects.filter(**keywords)[:20]
+		for tenant in tenants:
+			tenant_dict = {}
+			tenant_dict["tenant_id"] =  tenant.tenant_id
+			tenant_dict["tenant_name"] =  tenant.tenant_name
+			tenant_dict["phone"] =  tenant.phone
+			tenant_dict["address"] =  tenant.address
+			tenant_dict["date_joined"] =  str(tenant.date_joined)
+			tenant_dict["balance"] =  float(tenant.balance)
+			tenant_dict["commission_rate"] =  float(tenant.commission_rate)
+			tenant_dict["is_active"] =  True #tenant.is_active
+			msg.append(tenant_dict)
 		response = {}
-		response =  serializers.serialize('json', tenants)
-		return JsonResponse(response, safe = False)
+		response["result"] = msg
+		json_msg = json.dumps(response, indent=2)
+		return HttpResponse(json_msg, content_type="application/json")
 	except Exception as e:
-		return HttpResponse(str(e))
+		return HttpResponse(e, status = 400)
+
 
 def list_store_temp(request):
 	stores = m.Store.objects.all()
@@ -176,10 +189,8 @@ def list_store(request):
 		json_msg = json.dumps(response, indent=2)
 		return HttpResponse(json_msg, content_type="application/json")
 	except Exception as e:
-		return HttpResponse(e)
-		r = {}
-		r["message"] = e
-		return JsonResponse(r)
+		return HttpResponse(e, status = 400)
+
 
 def get_store(request):
 	#3.1
@@ -226,11 +237,7 @@ def list_showcase(request):
 		json_msg = json.dumps(response, indent=2)
 		return HttpResponse(json_msg, content_type="application/json")
 	except Exception as e:
-		return HttpResponse(e)
-		r = {}
-		r["message"] = e
-		return JsonResponse(r)
-
+		return HttpResponse(e, status = 400)
 
 def update_store(request):
 	#3.2
@@ -268,7 +275,7 @@ def get_showcase(request):
 		if showcase.showcaserental_set.all():
 			showcase_dict["rental_id"] = showcase.showcaserental_set.last().id
 		else:
-			showcase_dict["rental_id"] = ""
+			showcase_dict["rental_id"] = None
 		json_msg = json.dumps(showcase_dict, indent=2)
 		return HttpResponse(json_msg, content_type="application/json")
 	except Exception as e:
@@ -302,7 +309,6 @@ def rent_showcase(request):
 		with django.db.transaction.atomic():
 			showcase_rental = m.ShowcaseRental.objects.create(**request.GET.dict()) ##should return a queryset with 0 or 1 elements.
 			showcase_rental.save()
-
 			showcase = showcase_rental.showcase
 			showcase.showcase_type = showcase_rental.showcase_type
 			showcase.save()
@@ -326,15 +332,38 @@ def set_showcase_status(request):
 	except Exception as e:
 		return HttpResponse(e, status = 400)
 
+def list_rental(request):
+	try:
+		rentals = m.ShowcaseRental.objects.all()
+		msg = []
+		if "showcase_id" in request.GET:
+			store_id = request.GET.get("store_id")
+			rentals = rental.filter(showcase_id = store_id)
+		for rental in rentals:
+			rental_dict = {}
+			rental_dict["name"] = rental.name
+			rental_dict["starting_date"] = str(rental.starting_date)
+			rental_dict["ending_date"] = str(rental.ending_date)
+			rental_dict["monthly_rent"] = float(rental.monthly_rent)
+			rental_dict["showcase_type"] = rental.get_showcase_type_display()
+			rental_dict["remark"] = rental.remark
+			msg.append(rental_dict)
+		response = {}
+		response["result"] = msg
+		json_msg = json.dumps(response, indent=2)
+		return HttpResponse(json_msg, content_type="application/json")
+	except Exception as e:
+		return HttpResponse(e)
+
 
 def list_inventory(request):
 	# 5.1
 	try:
 		inventories = m.Inventory.objects.all()
 		msg = []
-		if "store_id" in request.GET:
-			store_id = request.GET.get("store_id")
-			inventories = inventories.filter(from_showcase__store = store_id)
+		if "from_showcase_id" in request.GET:
+			from_showcase_id = request.GET.get("from_showcase_id")
+			inventories = inventories.filter(from_showcase_id = from_showcase_id)
 		for inventory in inventories:
 			inventory_dict = {}
 			inventory_dict["inventory_id"] = inventory.inventory_id
@@ -352,6 +381,14 @@ def list_inventory(request):
 		return HttpResponse(json_msg, content_type="application/json")
 	except Exception as e:
 		return HttpResponse(e)
+
+def create_inventory(request):
+	try:
+		inventory = m.Inventory.objects.create(**request.GET.dict())
+		inventory.save()
+		return HttpResponse(inventory.inventory_id, status = 400)
+	except Exception as e:
+		return HttpResponse(e, status = 400)
 
 def change_inventory_quantity(request):
 	# 5.1
@@ -374,16 +411,16 @@ def change_inventory_quantity(request):
 def get_stock(request):
 	#6.1
 	try:
-		stock_code = request.GET.get("stock_id")
-		stock = m.Stock.objects.get(stock_code = stock_code)
+		stock_id = request.GET.get("stock_id")
+		stock = m.Stock.objects.get(stock_id = stock_id)
 
 		response = {}
-		response["stock_id"] = stock.stock_code
+		response["stock_id"] = stock.stock_id
 		response["name"] = stock.name
 		response["unit_price"] = float(stock.unit_price)
 		response["description"] = stock.description
 		response["is_on_hold"] = stock.is_on_hold
-		return JsonResponse(response, status = 400)
+		return JsonResponse(response)
 
 	except Exception as e:
 		return HttpResponse(e, status = 400)
@@ -391,12 +428,16 @@ def get_stock(request):
 def list_stock(request):
 
 	#3, 5
-	stocks = m.Stock.objects.all()
-	msg = []
 	try:
+		stocks = m.Stock.objects.all()
+		msg = []
+		if "q" in request.GET:
+			q = request.GET.get("q")
+			stocks = stocks.filter(Q(stock_id__icontains=q)|Q(name__icontains=q))
+
 		for stock in stocks:
 			stock_dict = {}
-			stock_dict["stock_id"] = stock.stock_code
+			stock_dict["stock_id"] = stock.stock_id
 			stock_dict["name"] = stock.name
 			stock_dict["unit_price"] = float(stock.unit_price)
 			stock_dict["description"] = stock.description
@@ -415,15 +456,15 @@ def create_stock(request):
 	#6.3 Todo
 	try:
 		stock = m.Stock.objects.create(**request.GET.dict()) ##should return a queryset with 0 or 1 elements.
-		return HttpResponse(stock.stock_code)
+		return HttpResponse(stock.stock_id)
 	except Exception as e:
 		return HttpResponse(e, status = 400)
 
 def update_stock(request):
 	#6.3, 8
 	try:
-		stock_code = request.GET.get("stock_code")
-		stock = m.Stock.objects.filter(stock_code = stock_code) ##should return a queryset with 0 or 1 elements.
+		stock_id = request.GET.get("stock_id")
+		stock = m.Stock.objects.filter(stock_id = stock_id) ##should return a queryset with 0 or 1 elements.
 		if stock:
 			val = request.GET.copy().dict()
 			stock.update(**val)
@@ -457,6 +498,30 @@ def get_profile(request):
 	except Exception as e:
 		return HttpResponse(e, status = 400)
 
+
+def list_staff(request):
+	#3.1, 4
+	staff_members = m.Staff.objects.all()
+
+	msg = []
+	try:
+		for staff in staff_members:
+			staff_dict = {}
+			staff_dict["status"] = "Success"
+			staff_dict["staff_id"] =  staff.staff_id
+			staff_dict["staff_name"] =  staff.staff_name
+			staff_dict["salary"] =  float(staff.current_salary)
+			staff_dict["staff_type"] =  staff.get_staff_type_display()
+			json_msg = json.dumps(staff_dict, indent=2)
+			msg.append(staff_dict)
+		response = {}
+		response["result"] = msg
+		json_msg = json.dumps(response, indent=2)
+		return HttpResponse(json_msg, content_type="application/json")
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
+
 def get_staff(request):
 	#11.1
 	staff_id = request.GET.get("staff_id")
@@ -464,17 +529,13 @@ def get_staff(request):
 	try:
 		staff = m.Staff.objects.get(staff_id = staff_id)
 		response = {}
-		response["status"] = "Success"
 		response["staff_id"] =  staff.staff_id
 		response["staff_name"] =  staff.staff_name
-		response["salary"] =  staff.current_salary
+		response["salary"] =  float(staff.current_salary)
 		response["staff_type"] =  staff.get_staff_type_display()
 		return JsonResponse(response)
 	except Exception as e:
-		response = {}
-		response["message"] = str(e)
-		return JsonResponse(response)
-
+		return HttpResponse(e, status = 400)
 
 def create_staff(request):
 	#11.2
@@ -584,3 +645,32 @@ def is_authenticated(request):
 
 def todo(request):
 	return HttpResponse("Todo")
+
+def test_db_integrity(request):
+	if request.user.is_superuser:
+		users = m.User.objects.filter()
+		count = 0
+		msg = ""
+		for user in users:
+			if user.is_staff:
+				if user.id !=user.staff.staff_id: ##ensure that all staff has a staff subclass
+					raise(ValueError)
+				count+=1
+				msg+=f"{user.id}, {user.staff.staff_id}\n"
+
+			else:
+				msg+=f"{user.id}, {user.tenant.tenant_id}\n"
+				# if user.id != user.tenant.tenant_id: ##ensure that all staff has a staff subclass
+					# raise(ValueError, f"{user.tenant.tenant_id}")
+				count+=1
+					# user.delete()
+		msg += f"Successfully checked {count} records\n"
+		return HttpResponse(msg)
+	else:
+		return HttpResponse("Please login as a superuser", status = 400)
+
+def test_json(request):
+	response = {
+
+	}
+	return HttpResponse("Success")

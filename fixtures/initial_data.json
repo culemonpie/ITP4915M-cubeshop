@@ -1,0 +1,23 @@
+[{
+		"model": "auth.user",
+		"pk": 1,
+		"fields": {
+			"username": 1,
+			"password": "pbkdf2_sha256$180000$dnuHY5tZXMiS$pVspBHibZlJ+a8MDGMSPmWl94NqCFnjzB6qc3rfxIFM=",
+			"is_superuser": true,
+			"is_staff": true,
+			"is_active": true
+		}
+	},
+	{
+		"model": "server.staff",
+		"pk": 1,
+		"fields": {
+			"staff_name": "Robert",
+			"user_id": 1,
+			"date_joined": "2020-06-01",
+			"current_salary": 20000,
+			"staff_type": "D"
+		}
+	}
+]
