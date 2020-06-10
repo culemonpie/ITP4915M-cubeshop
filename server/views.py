@@ -26,8 +26,8 @@ def index(request):
 
 def login_view(request):
 	#1
-	username = request.GET.get("username")
-	password = request.GET.get("password")
+	username = request.GET.get("username") or request.POST.get("username")
+	password = request.GET.get("password") or request.POST.get("password")
 	user = authenticate(username = username, password = password)
 
 	if user:
@@ -627,10 +627,15 @@ def checkout(request):
 		if request.user.is_staff:
 			with django.db.transaction.atomic():
 				receipt = m.Receipt.objects.create(**request.GET.dict())
-				receipt.responsible = request.user
-				receipt.change = receipt.grand_total - receipt.tender
+
+				if request.method == "POST":
+					print (request.body)
+					receipt.responsible = request.user
+					receipt.change = receipt.grand_total - receipt.tender
 				# receipt.save()
-				return HttpResponse("Todo", status = 400)
+					return HttpResponse("Todo")
+				else:
+					return HttpResponse(status = 405)
 		else:
 			return HttpResponse("Please login as a staff to perform checkout", status = 400)
 	except Exception as e:

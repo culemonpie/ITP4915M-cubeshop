@@ -22,7 +22,7 @@ urlpatterns = [
 	path('list_inventory', views.list_inventory), #5, 5.1
 	path('change_inventory_quantity', views.change_inventory_quantity), #5.x
 	path('create_inventory', views.create_inventory), #5.x
-	
+
 	path('list_stock', views.list_stock), #6 OK
 	path('get_stock', views.get_stock), #6.1 OK
 	path('update_stock', views.update_stock), #6.2, 8 OK
@@ -31,6 +31,9 @@ urlpatterns = [
 	path('update_profile', views.todo), #suspended
 	path('change_password', views.change_password), #7.4 OK
 	path('checkout', views.checkout), #8 #todo
+
+	path('get_profile', views.get_profile), #7 OK
+
 
 	path('list_tenant', views.list_tenant), #9
 	path('get_tenant', views.get_tenant), #9.1
