@@ -1,5 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.exceptions import ValidationError
+
 # Create your models here.
 
 class Staff(models.Model):
@@ -175,21 +177,26 @@ class Inventory(models.Model):
 		return f"{self.from_showcase.showcase_id}-{self.from_stock.stock_code}"
 
 class Receipt(models.Model):
-	receipt_id = models.AutoField(primary_key = True)
+	# receipt_id = models.AutoField(primary_key = True)
 	grand_total = models.DecimalField(max_digits = 6, decimal_places = 1)
 	time = models.DateTimeField(auto_now_add = True)
 	tender = models.DecimalField(max_digits = 6, decimal_places = 1)
+	discount = models.DecimalField(default = 0, max_digits = 6, decimal_places = 1)
 	change = models.DecimalField(max_digits = 6, decimal_places = 1, blank = True)
 	responsible = models.ForeignKey("Staff", on_delete = models.CASCADE)
 	is_cancelled = models.BooleanField(default = False)
+
+	def clean(self):
+		if self.tender < self.grand_total:
+			raise ValidationError("Tender must be greater than or equal to the total amount")
 
 	def __str__(self):
 		return str(self.receipt_id).zfill(6)
 
 class Purchase(models.Model):
-	purchase_id = models.AutoField(primary_key = True)
+	# purchase_id = models.AutoField(primary_key = True)
 	quantity = models.IntegerField()
 	amount = models.DecimalField(max_digits = 6, decimal_places = 1)
 	remark = models.TextField(max_length = 4096)
-	stock_code = models.ForeignKey("Stock", on_delete = models.CASCADE)
+	stock = models.ForeignKey("Stock", on_delete = models.CASCADE)
 	receipt = models.ForeignKey("Receipt", on_delete = models.CASCADE)

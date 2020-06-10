@@ -1,0 +1,23 @@
+Hong Kong Cube Shop Limited
+Kwai Chung Branch
+1/F, Kwai Chung Station
+
+Date: {{receipt.time|date:"SHORT_DATETIME_FORMAT"}}
+Sales: {{receipt.responsible.staff_name}}
+Receipt No: {{receipt.id}}
+
+Items
+{% for purchase in receipt.purchase_set.all %}
+{{purchase.stock.name}}
+QTY: {{purchase.quantity}}
+Subtotal: {{purchase.amount}}
+{% endfor %}
+
+Tender: HKD {{receipt.tender}}
+Discount: HKD {{receipt.discount}}
+Grand total: HKD {{receipt.grand_total}}
+Method: Cash
+Change: {{receipt.change}}
+
+No refund can be made upon purchase.
+Thank you for your business!

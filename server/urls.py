@@ -48,7 +48,8 @@ urlpatterns = [
 	path('update_staff', views.update_staff), #11.3 OK
 
 	path('list_receipt', views.todo), #12
-	path('get_receipt', views.todo), #12.1
+	path('get_receipt', views.get_receipt), #12.1
+	path('get_receipt_print', views.get_receipt_print), #12.2
 
 	path('is_authenticated', views.is_authenticated), #test
 	path('test_db_integrity', views.test_db_integrity), #test

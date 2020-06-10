@@ -1,6 +1,7 @@
 import django
 from django.shortcuts import render
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse, FileResponse
+from django.template.loader import render_to_string
 from django.contrib.auth import authenticate, login, logout
 from django.core import serializers
 from . import models as m
@@ -597,6 +598,47 @@ def update_staff(request):
 		except Exception as e:
 			return HttpResponse(e, status = 400)
 
+def get_receipt(request):
+	'''
+	12.1
+	receipt_id
+	'''
+
+	try:
+		id = request.GET.get("id")
+		receipt = m.Receipt.objects.get(id = id)
+		response = {}
+		response["id"] = receipt.id
+		response["grand_total"] = float(receipt.grand_total)
+		response["time"] = str(receipt.time)
+		response["tender"] = float(receipt.tender)
+		response["change"] = float(receipt.change)
+		response["responsible"] = receipt.responsible.staff_name
+		response["purchase"] = []
+		for purchase in receipt.purchase_set.all():
+			purchase_dict = {}
+			purchase_dict["quantity"] = purchase.quantity
+			purchase_dict["amount"] = float(purchase.amount)
+			purchase_dict["remark"] = purchase.remark
+			purchase_dict["stock_name"] = purchase.stock.name
+			response["purchase"].append(purchase_dict)
+		json_msg = json.dumps(response, indent=2)
+		return HttpResponse(json_msg, content_type="application/json")
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
+def get_receipt_print(request):
+	try:
+		id = request.GET.get("id")
+		receipt = m.Receipt.objects.get(id = id)
+		context = {
+			"receipt": receipt,
+		}
+		msg = render_to_string("server/receipt.txt", context).replace("\n","<br>")
+		return HttpResponse(msg)
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
 
 def change_password(request):
 	#7.4
@@ -626,7 +668,31 @@ def checkout(request):
 	try:
 		if request.user.is_staff:
 			with django.db.transaction.atomic():
-				receipt = m.Receipt.objects.create(**request.GET.dict())
+				payload_content = r'{"result":[{"stock_id":1,"quantity":1,"unit_price":98},{"stock_id":2,"quantity":1,"unit_price":80}],"total":178,"discount":0,"tender":178}'
+
+				result_dict = json.loads(payload_content)
+				msg = ""
+				receipt = m.Receipt()
+				receipt.grand_total = result_dict['total']
+				receipt.tender = result_dict['tender']
+				receipt.discount = result_dict['discount']
+				receipt.change = receipt.tender - receipt.grand_total
+				receipt.responsible = request.user.staff
+				receipt.save()
+				for stock in result_dict["result"]:
+					purchase = m.Purchase()
+					purchase.quantity = stock['quantity']
+					purchase.amount = stock['unit_price'] * stock['quantity']
+					purchase.stock_id = stock['stock_id']
+					purchase.receipt = receipt
+					purchase.save()
+
+					# purchase.stock.stock_in_qty
+					## todo:
+					msg += f"{stock['stock_id']} - {stock['quantity']} - {stock['unit_price']}\n"
+				msg += f"Total - {receipt.grand_total}\nDiscount - {receipt.discount}\ntender: {result_dict['tender']}"
+
+				return HttpResponse(msg)
 
 				if request.method == "POST":
 					print (request.body)
