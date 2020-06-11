@@ -8,6 +8,8 @@ from . import models as m
 from django.db.models import Q
 import datetime
 import json
+from django.views.decorators.csrf import csrf_exempt
+
 
 def get_user_subclass(user):
 	try:
@@ -36,7 +38,13 @@ def login_view(request):
 		response = {}
 		response["username"] = request.user.username
 		response["user_id"] = request.user.id
-		response["user_type"] = ""
+		try:
+			if request.user.is_staff:
+				response["user_level"] = request.user.staff.get_user_level()
+			else:
+				response["user_level"] = 6
+		except:
+			response["user_level"] = 7
 		return JsonResponse(response)
 	else:
 		response = {}
@@ -142,11 +150,11 @@ def list_tenant(request):
 	except Exception as e:
 		return HttpResponse(e, status = 400)
 
-
-def list_store_temp(request):
-	stores = m.Store.objects.all()
-	response = [s.store_id for s in stores]
-	return JsonResponse(response, safe = False)
+#
+# def list_store_temp(request):
+# 	stores = m.Store.objects.all()
+# 	response = [s.store_id for s in stores]
+# 	return JsonResponse(response, safe = False)
 
 def get_tenant(request):
 	#9.1
@@ -219,6 +227,11 @@ def list_showcase(request):
 	if "store_id" in request.GET:
 		store_id = request.GET.get("store_id")
 		showcases = showcases.filter(store_id = store_id)
+
+	if "showcase_id" in request.GET:
+		showcase_id = request.GET.get("showcase_id")
+		showcases = showcases.filter(showcase_id = showcase_id)
+
 
 	msg = []
 	try:
@@ -418,9 +431,9 @@ def get_stock(request):
 		response = {}
 		response["stock_id"] = stock.stock_id
 		response["name"] = stock.name
-		response["unit_price"] = float(stock.unit_price)
+		response["unit_price"] = 0 #deprecarted
 		response["description"] = stock.description
-		response["is_on_hold"] = stock.is_on_hold
+		response["is_on_hold"] = False #deprecarted
 		return JsonResponse(response)
 
 	except Exception as e:
@@ -440,9 +453,9 @@ def list_stock(request):
 			stock_dict = {}
 			stock_dict["stock_id"] = stock.stock_id
 			stock_dict["name"] = stock.name
-			stock_dict["unit_price"] = float(stock.unit_price)
+			stock_dict["unit_price"] = 0
 			stock_dict["description"] = stock.description
-			stock_dict["is_on_hold"] = stock.is_on_hold
+			stock_dict["is_on_hold"] = False #deprecated
 			msg.append(stock_dict)
 		response = {}
 		response["stock_result"] = msg
@@ -452,6 +465,24 @@ def list_stock(request):
 	except Exception as e:
 		return HttpResponse(e, status = 400)
 
+	staff_id = request.GET.get("staff_id")
+
+def get_inventory(request):
+	# try:
+		inventory_id = request.GET.get("inventory_id")
+		inventory = m.Inventory.objects.get(inventory_id = inventory_id)
+		response = {}
+		response["inventory_id"] =  inventory.inventory_id
+		response["unit_price"] =  float(inventory.unit_price)
+		response["stock_in_qty"] =  inventory.stock_in_qty
+		response["remark"] =  inventory.remark or ""
+		response["stock_id"] =  inventory.from_stock_id
+		response["name"] =  inventory.from_stock.name
+		response["showcase_id"] =  inventory.from_showcase_id
+		json_msg = json.dumps(response, indent=2)
+		return HttpResponse(json_msg, content_type="application/json")
+	# except Exception as e:
+	# 	return HttpResponse(e, status = 400)
 
 def create_stock(request):
 	#6.3 Todo
@@ -598,6 +629,32 @@ def update_staff(request):
 		except Exception as e:
 			return HttpResponse(e, status = 400)
 
+
+def list_receipt(request):
+	#9 - todo
+	#3, 5
+	receipts = m.Receipt.objects.all()
+	msg = []
+	try:
+		for receipt in receipts:
+			receipt_dict = {}
+			receipt_dict["id"] =  receipt.id
+			receipt_dict["store"] =  "Kwai Fong"
+			receipt_dict["time"] =  str(receipt.time)
+			receipt_dict["grand_total"] =  float(receipt.grand_total)
+			receipt_dict["tender"] =  float(receipt.tender)
+			receipt_dict["change"] =  float(receipt.change)
+			receipt_dict["responsible"] =  receipt.responsible.staff_name
+			msg.append(receipt_dict)
+		response = {}
+		response["result"] = msg
+		json_msg = json.dumps(response, indent=2)
+		return HttpResponse(json_msg, content_type="application/json")
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
+
+
 def get_receipt(request):
 	'''
 	12.1
@@ -620,7 +677,7 @@ def get_receipt(request):
 			purchase_dict["quantity"] = purchase.quantity
 			purchase_dict["amount"] = float(purchase.amount)
 			purchase_dict["remark"] = purchase.remark
-			purchase_dict["stock_name"] = purchase.stock.name
+			purchase_dict["stock_name"] = purchase.inventory.from_stock.name
 			response["purchase"].append(purchase_dict)
 		json_msg = json.dumps(response, indent=2)
 		return HttpResponse(json_msg, content_type="application/json")
@@ -658,6 +715,8 @@ def change_password(request):
 	except Exception as e:
 		return HttpResponse(e, status = 400)
 
+
+@csrf_exempt
 def checkout(request):
 	#8
 	'''
@@ -668,38 +727,40 @@ def checkout(request):
 	try:
 		if request.user.is_staff:
 			with django.db.transaction.atomic():
-				payload_content = r'{"result":[{"stock_id":1,"quantity":1,"unit_price":98},{"stock_id":2,"quantity":1,"unit_price":80}],"total":178,"discount":0,"tender":178}'
+				payload_content = request.POST.get("data")
+				# payload_content = r'{"result":[{"inventory_id":6,"quantity":2,"amount":30},{"inventory_id":1,"quantity":3,"amount":294}],"total":304,"discount":20,"tender":400}'
+				if True or request.method == "POST":
 
-				result_dict = json.loads(payload_content)
-				msg = ""
-				receipt = m.Receipt()
-				receipt.grand_total = result_dict['total']
-				receipt.tender = result_dict['tender']
-				receipt.discount = result_dict['discount']
-				receipt.change = receipt.tender - receipt.grand_total
-				receipt.responsible = request.user.staff
-				receipt.save()
-				for stock in result_dict["result"]:
-					purchase = m.Purchase()
-					purchase.quantity = stock['quantity']
-					purchase.amount = stock['unit_price'] * stock['quantity']
-					purchase.stock_id = stock['stock_id']
-					purchase.receipt = receipt
-					purchase.save()
+					result_dict = json.loads(payload_content)
+					msg = ""
+					receipt = m.Receipt()
+					receipt.grand_total = result_dict['total']
+					receipt.tender = result_dict['tender']
+					receipt.discount = result_dict['discount']
+					receipt.change = receipt.tender - receipt.grand_total
+					receipt.responsible = request.user.staff
+					receipt.save()
+					for inventory_string in result_dict["result"]:
+						purchase = m.Purchase()
+						purchase.quantity = inventory_string['quantity']
+						purchase.amount = inventory_string['amount']
+						purchase.inventory_id = inventory_string['inventory_id']
+						purchase.receipt = receipt
+						purchase.save()
 
-					# purchase.stock.stock_in_qty
-					## todo:
-					msg += f"{stock['stock_id']} - {stock['quantity']} - {stock['unit_price']}\n"
-				msg += f"Total - {receipt.grand_total}\nDiscount - {receipt.discount}\ntender: {result_dict['tender']}"
+						inventory = purchase.inventory
+						inventory.stock_in_qty -= purchase.quantity
+						inventory.save()
 
-				return HttpResponse(msg)
+						tenant = inventory.from_showcase.from_tenant
+						tenant.balance += purchase.amount * tenant.commission_rate / 100
+						tenant.save()
 
-				if request.method == "POST":
-					print (request.body)
-					receipt.responsible = request.user
-					receipt.change = receipt.grand_total - receipt.tender
-				# receipt.save()
-					return HttpResponse("Todo")
+						## todo:
+						msg += f"{inventory_string['inventory_id']} - {inventory_string['quantity']} - {inventory_string['amount']}\n"
+					msg += f"Total - {receipt.grand_total}\nDiscount - {receipt.discount}\ntender: {result_dict['tender']}"
+
+					return HttpResponse(msg)
 				else:
 					return HttpResponse(status = 405)
 		else:
@@ -745,3 +806,10 @@ def test_json(request):
 
 	}
 	return HttpResponse("Success")
+
+@csrf_exempt
+def test_post(request):
+
+	print (request.POST)
+
+	return HttpResponse(request.method)

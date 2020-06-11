@@ -17,7 +17,7 @@ class Staff(models.Model):
 		(FTS, "Full time staff"),
 		(STM, "Store manager"),
 		(HRM, "Human resources manager"),
-		(SLM, "Part time staff"),
+		(SLM, "Accountant"),
 		(D, "Director"),
 	)
 
@@ -33,6 +33,20 @@ class Staff(models.Model):
 
 	def __str__(self):
 		return self.staff_name
+
+	def get_user_level(self):
+		if self.staff_type == self.D:
+			return 0
+		elif self.staff_type == self.SLM:
+			return 1
+		elif self.staff_type == self.HRM:
+			return 2
+		elif self.staff_type == self.STM:
+			return 3
+		elif self.staff_type == self.FTS:
+			return 4
+		elif self.staff_type == self.PTS:
+			return 5
 
 class Tenant(models.Model):
 	tenant_id = models.IntegerField(primary_key = True)
@@ -151,10 +165,10 @@ class Stock(models.Model):
 	# stock_code = models.CharField(primary_key = True, max_length = 255) #renamed to stock_id
 	name = models.CharField(max_length = 255)
 
-	unit_price = models.DecimalField(max_digits = 6, decimal_places = 1)
+	# unit_price = models.DecimalField(max_digits = 6, decimal_places = 1)
 	##image_url
 	description = models.TextField(max_length = 4096)
-	is_on_hold = models.BooleanField(default = False)
+	# is_on_hold = models.BooleanField(default = False)
 
 	def __str__(self):
 		return self.name
@@ -198,5 +212,6 @@ class Purchase(models.Model):
 	quantity = models.IntegerField()
 	amount = models.DecimalField(max_digits = 6, decimal_places = 1)
 	remark = models.TextField(max_length = 4096)
-	stock = models.ForeignKey("Stock", on_delete = models.CASCADE)
+	# stock = models.ForeignKey("Stock", on_delete = models.CASCADE)
+	inventory = models.ForeignKey("Inventory", on_delete = models.CASCADE)
 	receipt = models.ForeignKey("Receipt", on_delete = models.CASCADE)

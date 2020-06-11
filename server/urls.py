@@ -6,7 +6,7 @@ urlpatterns = [
 	path('search', views.search), #global
 	path('logout', views.logout_view), #global OK
 	path('list_store', views.list_store), #3, 5 OK
-	path('list_store_temp', views.list_store_temp), #temp
+	# path('list_store_temp', views.list_store_temp), #temp
 	path('get_store', views.get_store), #3.1 OK
 	path('list_showcase', views.list_showcase), #3.1, 4 OK
 	path('update_store', views.update_store), #3.2 OK
@@ -25,6 +25,7 @@ urlpatterns = [
 
 	path('list_stock', views.list_stock), #6 OK
 	path('get_stock', views.get_stock), #6.1 OK
+	path('get_inventory', views.get_inventory), # Todo
 	path('update_stock', views.update_stock), #6.2, 8 OK
 	path('create_stock', views.create_stock), #6.3 OK
 	path('get_profile', views.get_profile), #7 OK
@@ -47,11 +48,12 @@ urlpatterns = [
 	path('create_staff', views.create_staff), #11.2 OK
 	path('update_staff', views.update_staff), #11.3 OK
 
-	path('list_receipt', views.todo), #12
+	path('list_receipt', views.list_receipt), #12
 	path('get_receipt', views.get_receipt), #12.1
 	path('get_receipt_print', views.get_receipt_print), #12.2
 
 	path('is_authenticated', views.is_authenticated), #test
 	path('test_db_integrity', views.test_db_integrity), #test
 	path('test_json', views.test_json), #test
+	path('test_post', views.test_post), #test
 ]
