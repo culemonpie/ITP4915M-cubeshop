@@ -124,7 +124,7 @@ AUTH_PASSWORD_VALIDATORS = [
 
 LANGUAGE_CODE = 'en-us'
 
-TIME_ZONE = 'UTC'
+TIME_ZONE = 'Asia/Hong_Kong'
 
 USE_I18N = True
 
@@ -142,3 +142,18 @@ STATIC_ROOT = '/home/bitnami/cubeshop/static'
 FIXTURE_DIRS = (
 	'/fixtures',
 )
+
+#Email
+# Host for sending e-mail.
+EMAIL_HOST = 'smtp.gmail.com'
+
+# Port for sending e-mail.
+EMAIL_PORT = 587
+
+# Optional SMTP authentication information for EMAIL_HOST
+DEFAULT_FROM_EMAIL = 'HKCubeShop <HKFingerprint@gmail.com>'
+
+
+EMAIL_HOST_USER = 'HKFingerprint@gmail.com'
+EMAIL_HOST_PASSWORD = r'y43,;XHZj;;u8H7""6)QgQqM7gF!:4;T'
+EMAIL_USE_TLS = True

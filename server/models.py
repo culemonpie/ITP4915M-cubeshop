@@ -180,6 +180,7 @@ class Inventory(models.Model):
 	remark = models.TextField(max_length = 4096, null = True, blank = True)
 	from_stock = models.ForeignKey("Stock", on_delete = models.CASCADE)
 	from_showcase = models.ForeignKey("Showcase", on_delete = models.CASCADE)
+	owner = models.ForeignKey("Tenant", on_delete = models.CASCADE)
 
 	class Meta:
 		verbose_name_plural = "Inventories"
@@ -209,7 +210,7 @@ class Receipt(models.Model):
 
 class Purchase(models.Model):
 	# purchase_id = models.AutoField(primary_key = True)
-	quantity = models.IntegerField()
+	quantity = models.PositiveIntegerField()
 	amount = models.DecimalField(max_digits = 6, decimal_places = 1)
 	remark = models.TextField(max_length = 4096)
 	# stock = models.ForeignKey("Stock", on_delete = models.CASCADE)

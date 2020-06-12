@@ -9,6 +9,7 @@ Receipt No: {{receipt.id}}
 Items
 {% for purchase in receipt.purchase_set.all %}
 {{purchase.inventory.from_stock.name}}
+Showcase: {{purchase.inventory.from_showcase}}
 QTY: {{purchase.quantity}}
 Subtotal: {{purchase.amount}}
 {% endfor %}

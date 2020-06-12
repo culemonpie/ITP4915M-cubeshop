@@ -9,7 +9,7 @@ from django.db.models import Q
 import datetime
 import json
 from django.views.decorators.csrf import csrf_exempt
-
+from django.core.mail import send_mail
 
 def get_user_subclass(user):
 	try:
@@ -292,6 +292,32 @@ def get_showcase(request):
 			showcase_dict["rental_id"] = None
 		json_msg = json.dumps(showcase_dict, indent=2)
 		return HttpResponse(json_msg, content_type="application/json")
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
+
+def get_tenant_sales(request):
+	#4.1
+	try:
+		tenant_id = request.GET.get("tenant_id")
+		products = []
+		for purchase in m.Purchase.objects.all():
+			pass
+			# if purchase.inventory.from_showcas
+		# showcase = m.Showcase.objects.get(showcase_id = showcase_id) ##should return a queryset with 0 or 1 elements.
+
+
+
+		# showcase_dict = {}
+		# showcase_dict["showcase_id"] = showcase.showcase_id
+		# showcase_dict["store"] = showcase.store.store_id
+		# showcase_dict["type"] = showcase.get_showcase_type_display()
+		# if showcase.showcaserental_set.all():
+		# 	showcase_dict["rental_id"] = showcase.showcaserental_set.last().id
+		# else:
+		# 	showcase_dict["rental_id"] = None
+		# json_msg = json.dumps(showcase_dict, indent=2)
+		# return HttpResponse(json_msg, content_type="application/json")
 	except Exception as e:
 		return HttpResponse(e, status = 400)
 
@@ -760,7 +786,7 @@ def checkout(request):
 						msg += f"{inventory_string['inventory_id']} - {inventory_string['quantity']} - {inventory_string['amount']}\n"
 					msg += f"Total - {receipt.grand_total}\nDiscount - {receipt.discount}\ntender: {result_dict['tender']}"
 
-					return HttpResponse(msg)
+					return HttpResponse(receipt.id)
 				else:
 					return HttpResponse(status = 405)
 		else:
@@ -813,3 +839,13 @@ def test_post(request):
 	print (request.POST)
 
 	return HttpResponse(request.method)
+
+def test_email(request):
+	send_mail(
+	'Thank you for registering on HKCS',
+	render_to_string("cubeshop/register_email.txt") ,
+	'<HKCS>HKFingerprint@gmail.com',
+	['robert@fingerprint.com.hk'],
+	fail_silently=False,
+)
+	return HttpResponse("Success")

@@ -37,6 +37,7 @@ urlpatterns = [
 
 
 	path('list_tenant', views.list_tenant), #9
+	path('get_tenant_sales', views.get_tenant_sales), #9.1
 	path('get_tenant', views.get_tenant), #9.1
 	path('update_tenant', views.update_tenant), #9.2
 	path('create_tenant', views.create_tenant), #9.3
@@ -56,4 +57,5 @@ urlpatterns = [
 	path('test_db_integrity', views.test_db_integrity), #test
 	path('test_json', views.test_json), #test
 	path('test_post', views.test_post), #test
+	path('test_email', views.test_email), #test
 ]
