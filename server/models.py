@@ -204,6 +204,10 @@ class Receipt(models.Model):
 	def clean(self):
 		if self.tender < self.grand_total:
 			raise ValidationError("Tender must be greater than or equal to the total amount")
+		if self.tender >= 0:
+			raise ValidationError("Tender must be greater than 0")
+		if self.grand_total >= 0:
+			raise ValidationError("Grand total must be greater than 0")
 
 	def __str__(self):
 		return str(self.receipt_id).zfill(6)

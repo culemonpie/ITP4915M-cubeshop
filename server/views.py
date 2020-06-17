@@ -10,6 +10,8 @@ import datetime
 import json
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
+import decimal
+
 
 def get_user_subclass(user):
 	try:
@@ -27,6 +29,7 @@ def index(request):
 	else:
 		return HttpResponse("Welcome")
 
+@csrf_exempt
 def login_view(request):
 	#1
 	username = request.GET.get("username") or request.POST.get("username")
@@ -102,20 +105,10 @@ def update_tenant(request):
 
 	with django.db.transaction.atomic():
 		try:
-			tenant = m.Tenant.objects.filter(tenant_id = tenant_id) ##should return a queryset with 0 or 1 elements.
-			if tenant:
-				val = request.GET.copy().dict()
-				tenant.update(**val)
-				response = {}
-				response["status"] = "Success"
-				response["tenant_id"] =  tenant.tenant_id
-				response["tenant_name"] =  tenant.tenant_name
-				response["phone"] =  tenant.phone
-				response["address"] =  tenant.address
-				response["date_joined"] =  tenant.date_joined
-				response["balance"] =  tenant.balance
-				response["commission_rate"] =  tenant.commission_rate
-				return JsonResponse(response)
+			tenants = m.Tenant.objects.filter(tenant_id = tenant_id) ##should return a queryset with 0 or 1 elements.
+			if tenants:
+				tenants.update(**request.GET.dict())
+				return HttpResponse(tenant_id)
 			else:
 				message =  "Matching query does not exist"
 				return HttpResponse(message, status = 400)
@@ -352,6 +345,10 @@ def rent_showcase(request):
 			showcase = showcase_rental.showcase
 			showcase.showcase_type = showcase_rental.showcase_type
 			showcase.save()
+
+			showcase_rental.tenant.balance -= decimal.Decimal(showcase_rental.monthly_rent)
+			showcase_rental.tenant.save()
+
 			return HttpResponse(showcase_rental.id)
 
 	except Exception as e:
@@ -439,7 +436,8 @@ def change_inventory_quantity(request):
 			changed_quantity = request.GET.get("changed_quantity")
 			inventory = m.Inventory.objects.get(inventory_id = inventory_id)
 			inventory.stock_in_qty += int(changed_quantity)
-			# if inventory.stock_in_qty <= 0: inventory.stock_in_qty=0
+			if inventory.stock_in_qty <= 0:
+				return HttpResponse("Quantity must be a whole number")
 			inventory.save()
 			response = {}
 			response["inventory_id"] = inventory.inventory_id
@@ -460,7 +458,17 @@ def get_stock(request):
 		response["unit_price"] = 0 #deprecarted
 		response["description"] = stock.description
 		response["is_on_hold"] = False #deprecarted
-		return JsonResponse(response)
+		response["inventory"] = []
+		for inventory in stock.inventory_set.all():
+			inventory_dict = {}
+			inventory_dict["inventory_id"] =  float(inventory.inventory_id)
+			inventory_dict["unit_price"] =  float(inventory.unit_price)
+			inventory_dict["stock_in_qty"] =  inventory.stock_in_qty
+			inventory_dict["showcase_id"] =  inventory.from_showcase_id
+			response["inventory"].append(inventory_dict)
+
+		json_msg = json.dumps(response, indent=2)
+		return HttpResponse(json_msg, content_type="application/json")
 
 	except Exception as e:
 		return HttpResponse(e, status = 400)
@@ -494,7 +502,7 @@ def list_stock(request):
 	staff_id = request.GET.get("staff_id")
 
 def get_inventory(request):
-	# try:
+	try:
 		inventory_id = request.GET.get("inventory_id")
 		inventory = m.Inventory.objects.get(inventory_id = inventory_id)
 		response = {}
@@ -507,14 +515,17 @@ def get_inventory(request):
 		response["showcase_id"] =  inventory.from_showcase_id
 		json_msg = json.dumps(response, indent=2)
 		return HttpResponse(json_msg, content_type="application/json")
-	# except Exception as e:
-	# 	return HttpResponse(e, status = 400)
+	except Exception as e:
+		return HttpResponse(e, status = 400)
 
 def create_stock(request):
 	#6.3 Todo
 	try:
-		stock = m.Stock.objects.create(**request.GET.dict()) ##should return a queryset with 0 or 1 elements.
-		return HttpResponse(stock.stock_id)
+		if request.GET.get("name"):
+			stock = m.Stock.objects.create(**request.GET.dict()) ##should return a queryset with 0 or 1 elements.
+			return HttpResponse(stock.stock_id)
+		else:
+			return HttpResponse("Name is missing", status = 400)
 	except Exception as e:
 		return HttpResponse(e, status = 400)
 
@@ -565,7 +576,6 @@ def list_staff(request):
 	try:
 		for staff in staff_members:
 			staff_dict = {}
-			staff_dict["status"] = "Success"
 			staff_dict["staff_id"] =  staff.staff_id
 			staff_dict["staff_name"] =  staff.staff_name
 			staff_dict["salary"] =  float(staff.current_salary)
@@ -614,6 +624,7 @@ def create_staff(request):
 	with django.db.transaction.atomic():
 		try:
 			user = m.User.objects.create_user(username = username, password = password)
+			user.is_staff = True
 			user.save()
 			staff = m.Staff(staff_id = user.id, staff_name = staff_name,  user = user, current_salary = current_salary, staff_type = staff_type, store_id = store_id)
 			staff.save()
@@ -666,7 +677,7 @@ def list_receipt(request):
 			receipt_dict = {}
 			receipt_dict["id"] =  receipt.id
 			receipt_dict["store"] =  "Kwai Fong"
-			receipt_dict["time"] =  str(receipt.time)
+			receipt_dict["time"] =  receipt.time.strftime("%Y-%m-%d %H:%M")
 			receipt_dict["grand_total"] =  float(receipt.grand_total)
 			receipt_dict["tender"] =  float(receipt.tender)
 			receipt_dict["change"] =  float(receipt.change)
@@ -693,7 +704,7 @@ def get_receipt(request):
 		response = {}
 		response["id"] = receipt.id
 		response["grand_total"] = float(receipt.grand_total)
-		response["time"] = str(receipt.time)
+		response["time"] = receipt.time.strftime("%Y-%m-%d %H:%M")
 		response["tender"] = float(receipt.tender)
 		response["change"] = float(receipt.change)
 		response["responsible"] = receipt.responsible.staff_name
@@ -766,6 +777,10 @@ def checkout(request):
 					receipt.change = receipt.tender - receipt.grand_total
 					receipt.responsible = request.user.staff
 					receipt.save()
+
+					if len(result_dict["result"]) == 0:
+						raise ValueError("Please enter at least one item")
+
 					for inventory_string in result_dict["result"]:
 						purchase = m.Purchase()
 						purchase.quantity = inventory_string['quantity']
@@ -779,7 +794,7 @@ def checkout(request):
 						inventory.save()
 
 						tenant = inventory.from_showcase.from_tenant
-						tenant.balance += purchase.amount * tenant.commission_rate / 100
+						tenant.balance += purchase.amount * (100 - tenant.commission_rate) / 100
 						tenant.save()
 
 						## todo:
