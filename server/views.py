@@ -228,8 +228,8 @@ def get_store(request):
 
 def list_showcase(request):
 	#3.1, 4
+	showcases = m.Showcase.objects.all()
 	if request.user.is_staff:
-		showcases = m.Showcase.objects.all()
 		if "store_id" in request.GET:
 			store_id = request.GET.get("store_id")
 			showcases = showcases.filter(store_id = store_id)
@@ -239,7 +239,7 @@ def list_showcase(request):
 			showcases = showcases.filter(showcase_id = showcase_id)
 	else:
 		try:
-			showcases = showcases.filter(showcaserental_set__tenant_id= request.user.id)
+			showcases = showcases.filter(from_tenant__id = request.user.id)
 		except Exception as e:
 			print (e)
 
