@@ -34,6 +34,7 @@ urlpatterns = [
 	path('checkout', views.checkout), #8 #todo
 
 	path('get_profile', views.get_profile), #7 OK
+	path('get_balance', views.get_balance), #7 OK
 
 
 	path('list_tenant', views.list_tenant), #9

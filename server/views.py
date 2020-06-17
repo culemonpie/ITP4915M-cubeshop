@@ -11,6 +11,7 @@ import json
 from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
 import decimal
+from django.contrib.auth.decorators import login_required
 
 
 def get_user_subclass(user):
@@ -119,6 +120,17 @@ def update_tenant(request):
 
 		return JsonResponse(response, status = 400)
 
+def get_balance(request):
+	try:
+		if request.user.is_staff:
+			return HttpResponse("/", status = 400)
+		else:
+			return HttpResponse(request.user.tenant.balance)
+	except:
+		return HttpResponse("/");
+
+
+
 def list_tenant(request):
 	#9 - todo
 	#3, 5
@@ -131,7 +143,7 @@ def list_tenant(request):
 			tenant_dict["tenant_name"] =  tenant.tenant_name
 			tenant_dict["phone"] =  tenant.phone
 			tenant_dict["address"] =  tenant.address
-			tenant_dict["date_joined"] =  str(tenant.date_joined)
+			tenant_dict["date_joined"] =  tenant.date_joined.strftime("%Y-%m-%d %H:%M")
 			tenant_dict["balance"] =  float(tenant.balance)
 			tenant_dict["commission_rate"] =  float(tenant.commission_rate)
 			tenant_dict["is_active"] =  True #tenant.is_active
@@ -216,14 +228,21 @@ def get_store(request):
 
 def list_showcase(request):
 	#3.1, 4
-	showcases = m.Showcase.objects.all()
-	if "store_id" in request.GET:
-		store_id = request.GET.get("store_id")
-		showcases = showcases.filter(store_id = store_id)
+	if request.user.is_staff:
+		showcases = m.Showcase.objects.all()
+		if "store_id" in request.GET:
+			store_id = request.GET.get("store_id")
+			showcases = showcases.filter(store_id = store_id)
 
-	if "showcase_id" in request.GET:
-		showcase_id = request.GET.get("showcase_id")
-		showcases = showcases.filter(showcase_id = showcase_id)
+		if "showcase_id" in request.GET:
+			showcase_id = request.GET.get("showcase_id")
+			showcases = showcases.filter(showcase_id = showcase_id)
+	else:
+		try:
+			showcases = showcases.filter(showcaserental_set__tenant_id= request.user.id)
+		except Exception as e:
+			print (e)
+
 
 
 	msg = []
@@ -393,6 +412,7 @@ def list_rental(request):
 		return HttpResponse(e)
 
 
+# @login_required
 def list_inventory(request):
 	# 5.1
 	try:
@@ -419,6 +439,7 @@ def list_inventory(request):
 	except Exception as e:
 		return HttpResponse(e)
 
+# @login_required
 def create_inventory(request):
 	try:
 		inventory = m.Inventory.objects.create(**request.GET.dict())
@@ -427,6 +448,7 @@ def create_inventory(request):
 	except Exception as e:
 		return HttpResponse(e, status = 400)
 
+# @login_required
 def change_inventory_quantity(request):
 	# 5.1
 	#todo: 話返啲貨喺邊度入
@@ -446,6 +468,7 @@ def change_inventory_quantity(request):
 	except Exception as e:
 		return HttpResponse(e)
 
+# @login_required
 def get_stock(request):
 	#6.1
 	try:
@@ -473,6 +496,7 @@ def get_stock(request):
 	except Exception as e:
 		return HttpResponse(e, status = 400)
 
+# @login_required
 def list_stock(request):
 
 	#3, 5
@@ -501,6 +525,7 @@ def list_stock(request):
 
 	staff_id = request.GET.get("staff_id")
 
+# @login_required
 def get_inventory(request):
 	try:
 		inventory_id = request.GET.get("inventory_id")
@@ -557,7 +582,7 @@ def get_profile(request):
 			response = {
 				"name": name,
 				"username": request.user.username,
-				"date_joined": request.user.date_joined,
+				"date_joined": request.user.date_joined.strftime("%Y-%m-%d"),
 				"type": type,
 			}
 

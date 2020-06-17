@@ -112,6 +112,7 @@ class Showcase(models.Model):
 			print (self.showcase_id)
 		super().save(*args, **kwargs)
 
+
 	def __str__(self):
 		return self.showcase_id
 
@@ -189,7 +190,7 @@ class Inventory(models.Model):
 		]
 
 	def __str__(self):
-		return f"{self.from_showcase.showcase_id}-{self.from_stock.stock_code}"
+		return f"{self.from_showcase.showcase_id}-{self.from_stock.stock_id}"
 
 class Receipt(models.Model):
 	# receipt_id = models.AutoField(primary_key = True)
@@ -210,7 +211,7 @@ class Receipt(models.Model):
 			raise ValidationError("Grand total must be greater than 0")
 
 	def __str__(self):
-		return str(self.receipt_id).zfill(6)
+		return str(self.id).zfill(6)
 
 class Purchase(models.Model):
 	# purchase_id = models.AutoField(primary_key = True)
@@ -220,3 +221,6 @@ class Purchase(models.Model):
 	# stock = models.ForeignKey("Stock", on_delete = models.CASCADE)
 	inventory = models.ForeignKey("Inventory", on_delete = models.CASCADE)
 	receipt = models.ForeignKey("Receipt", on_delete = models.CASCADE)
+
+	def __str__(self):
+		return f"{self.id}"
