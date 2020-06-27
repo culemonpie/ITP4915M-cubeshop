@@ -12,6 +12,7 @@ urlpatterns = [
 	path('update_store', views.update_store), #3.2 OK
 	path('create_store', views.create_store), #3.3 OK
 	path('get_showcase', views.get_showcase), #4.1 OK
+	path('get_showcase_sales', views.get_showcase_sales), #4.1 OK
 	path('create_showcase', views.create_showcase), #4.2 OK
 	path('update_showcase', views.update_showcase), #4.3 OK
 	path('rent_showcase', views.rent_showcase), #4.4
@@ -22,6 +23,7 @@ urlpatterns = [
 	path('list_inventory', views.list_inventory), #5, 5.1
 	path('change_inventory_quantity', views.change_inventory_quantity), #5.x
 	path('create_inventory', views.create_inventory), #5.x
+	path('create_inventory_quick', views.create_inventory_quick), #5.x
 
 	path('list_stock', views.list_stock), #6 OK
 	path('get_stock', views.get_stock), #6.1 OK
@@ -42,6 +44,9 @@ urlpatterns = [
 	path('get_tenant', views.get_tenant), #9.1
 	path('update_tenant', views.update_tenant), #9.2
 	path('create_tenant', views.create_tenant), #9.3
+	path('tenant_topup', views.tenant_topup), #9.x
+	path('tenant_cashout', views.tenant_cashout), #9.x
+	path('create_tenant', views.create_tenant), #9.3
 
 	path('list_sales', views.todo), #10 Todo
 
@@ -51,6 +56,7 @@ urlpatterns = [
 	path('update_staff', views.update_staff), #11.3 OK
 
 	path('list_receipt', views.list_receipt), #12
+	path('receipt_refund', views.receipt_refund), #12
 	path('get_receipt', views.get_receipt), #12.1
 	path('get_receipt_print', views.get_receipt_print), #12.2
 

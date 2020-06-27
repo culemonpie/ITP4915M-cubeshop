@@ -101,7 +101,7 @@ class Showcase(models.Model):
 	from_tenant = models.ForeignKey("Tenant", on_delete = models.CASCADE, null = True) #to be renamed: owner
 	store = models.ForeignKey("Store", on_delete = models.CASCADE)
 	showcase_type = models.CharField(choices = sorted(rental_types), max_length = 255, default = V )
-	# current_rent = models.DecimalField(max_digits = 6, decimal_places = 1, default = 0)
+	current_rent = models.DecimalField(max_digits = 6, decimal_places = 1, default = 600)
 	rental_index = models.PositiveIntegerField(default = 0)
 
 	def save(self, *args, **kwargs):
@@ -137,7 +137,7 @@ class ShowcaseRental(models.Model):
 	monthly_rent = models.DecimalField(max_digits = 6, decimal_places = 1)
 	showcase_type = models.CharField(choices = sorted(rental_types), max_length = 255, default = N )
 	showcase = models.ForeignKey("Showcase", on_delete = models.CASCADE, )
-	tenant = models.ForeignKey("Tenant", on_delete = models.CASCADE, null = True, blank = True)
+	tenant = models.ForeignKey("Tenant", on_delete = models.CASCADE, null = True, blank = True) #to be renamed: owner
 	remark = models.TextField(max_length = 4096, null = True, blank = True)
 	responsible = models.ForeignKey(User, null = True, on_delete = models.SET_NULL)
 
@@ -147,6 +147,10 @@ class ShowcaseRental(models.Model):
 			self.showcase.save()
 			self.name = f"{self.showcase.showcase_id}-{self.showcase.rental_index}"
 		super().save(*args, **kwargs)
+
+	# def clean(self):
+	# 	if self.ending_date < self.starting_date:
+	# 		raise ValidationError("Ending date must be later than starting date")
 
 	def __str__(self):
 		return self.name
@@ -175,6 +179,16 @@ class Stock(models.Model):
 		return self.name
 
 class Inventory(models.Model):
+	PENDING = 1
+	APPROVED = 2
+	DECLINED = 3
+
+	status_choices = {
+		(PENDING, "Pending"),
+		(APPROVED, "Approved"),
+		(DECLINED, "Declined"),
+	}
+
 	inventory_id = models.AutoField(primary_key = True) ##not used
 	unit_price = models.DecimalField(max_digits = 6, decimal_places = 1)
 	stock_in_qty = models.PositiveIntegerField()
@@ -182,6 +196,7 @@ class Inventory(models.Model):
 	from_stock = models.ForeignKey("Stock", on_delete = models.CASCADE)
 	from_showcase = models.ForeignKey("Showcase", on_delete = models.CASCADE)
 	owner = models.ForeignKey("Tenant", on_delete = models.CASCADE)
+	status = models.IntegerField(choices = sorted(status_choices), default = APPROVED )
 
 	class Meta:
 		verbose_name_plural = "Inventories"

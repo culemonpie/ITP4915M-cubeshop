@@ -1,4 +1,5 @@
 from django.test import TestCase, Client
+from unittest import skip
 from django.contrib.auth import authenticate
 import json
 from . import models as m
@@ -8,6 +9,7 @@ import pprint
 client = Client()
 
 class APITest(TestCase):
+	@skip("old")
 	def test_login(self):
 		### Create user
 		user = m.User.objects.create_user(username = "4915m", password = "4915m2020")
@@ -35,6 +37,7 @@ class APITest(TestCase):
 		json_response = json.loads(client.get(url).content)
 		self.assertEqual(expected_output, json_response["status"])
 
+	@skip("old")
 	def test_CRU_tenant(self):
 		## create tenant object
 		expected_output = "Success"
@@ -99,3 +102,37 @@ class APITest(TestCase):
 		url = '/list_tenant?wrong=9'
 		json_response = json.loads(client.get(url).content)
 		self.assertEqual(expected_output, json_response["status"])
+
+	def test_tongsir_workflow(self):
+		# 1. staff 登入
+		# 檢查正確密碼是否成功，錯誤密碼將失敗
+
+		url = "/create_staff?username=1&current_salary=9000&staff_name=Robert&staff_type=M"
+		response = client.get(url).content
+		staff = m.User.objects.get(username = "1")
+		client.force_login(staff)
+
+		# 2. 張先生來店申請帳戶
+		# 檢查是否有重複用戶名或不正確輸入，則失敗
+		# 如一切正確，將新增帳戶並以電郵通知張先生
+
+
+		# 3. 張先生入錢及提款
+		# 檢查原有及後來結餘相差值
+		# 操作後結餘最少為零
+		# 檢查是否有新款項來往記錄
+
+		# 4. 張先生租格仔，系統扣款
+		# 檢查戶口結餘、款項來往記錄
+		# 檢查出租記錄
+
+		# 5. 張先生將貨物存入格仔
+		# 檢查格仔內庫存
+		# 檢查格仔是否屬於張先生
+
+		# 6. 客人來店購買張先生的貨品
+		# （呢部份有啲複雜）
+		# 以json形式將結帳記錄發送至server
+		# 結帳後檢查庫存減少
+		# 租戶結餘
+		# 店舖銷售記錄

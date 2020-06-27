@@ -98,6 +98,35 @@ def create_tenant(request):
 		except Exception as e:
 			return HttpResponse(e, status = 400)
 
+def tenant_topup(request):
+	try:
+		tenant_id = request.GET.get("tenant_id")
+		amount = decimal.Decimal(request.GET.get("amount"))
+		tenant = m.Tenant.objects.get(tenant_id = tenant_id)
+		if amount > 0:
+			tenant.balance += amount
+			tenant.save()
+		else:
+			raise ValueError("Value must be larger than 0")
+		return HttpResponse(tenant.balance)
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
+def tenant_cashout(request):
+	try:
+		tenant_id = request.GET.get("tenant_id")
+		amount = decimal.Decimal(request.GET.get("amount"))
+		tenant = m.Tenant.objects.get(tenant_id = tenant_id)
+		if amount > 0:
+			tenant.balance -= amount
+			tenant.save()
+		else:
+			raise ValueError("Value must be larger than 0")
+		return HttpResponse(tenant.balance)
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
+
 
 def update_tenant(request):
 	#9.1 - todo
@@ -135,6 +164,11 @@ def list_tenant(request):
 	#9 - todo
 	#3, 5
 	tenants = m.Tenant.objects.all()
+
+	if "q" in request.GET:
+		q = request.GET["q"]
+		tenants = tenants.filter(Q(tenant_id__icontains = q)|Q(tenant_name__icontains = q))
+
 	msg = []
 	try:
 		for tenant in tenants:
@@ -172,7 +206,7 @@ def get_tenant(request):
 		response["tenant_name"] =  tenant.tenant_name
 		response["phone"] =  tenant.phone
 		response["address"] =  tenant.address
-		response["date_joined"] =  str(tenant.date_joined)
+		response["date_joined"] = tenant.date_joined.strftime("%Y-%m-%d %H:%M")
 		response["balance"] =  float(tenant.balance)
 		response["commission_rate"] =  float(tenant.commission_rate)
 		response["is_active"] =  True #tenant.is_active
@@ -229,6 +263,10 @@ def get_store(request):
 def list_showcase(request):
 	#3.1, 4
 	showcases = m.Showcase.objects.all()
+
+	if "q" in request.GET:
+		showcases = showcases.filter(showcase_id__icontains=request.GET["q"])
+
 	if request.user.is_staff:
 		if "store_id" in request.GET:
 			store_id = request.GET.get("store_id")
@@ -252,10 +290,14 @@ def list_showcase(request):
 			showcase_dict["showcase_id"] = showcase.showcase_id
 			showcase_dict["store"] = showcase.store.store_id
 			showcase_dict["type"] = showcase.get_showcase_type_display()
+			showcase_dict["current_rent"] = float(showcase.current_rent)
 			if showcase.showcaserental_set.all():
 				showcase_dict["rental_id"] = showcase.showcaserental_set.last().id
+				# showcase_dict["current_rent"] = showcase.showcaserental_set.last().current_rent
+				showcase_dict["owner"] = showcase.showcaserental_set.last().tenant.tenant_name
 			else:
 				showcase_dict["rental_id"] = None
+				showcase_dict["owner"] = None
 			json_msg = json.dumps(showcase_dict, indent=2)
 			msg.append(showcase_dict)
 		response = {}
@@ -282,10 +324,12 @@ def update_store(request):
 def create_store(request):
 	#3.3
 	try:
-		store_id = request.GET.get("store_id")
-		val = request.GET.copy().dict()
-		store = m.Store.objects.create(**val) ##should return a queryset with 0 or 1 elements.
-		return HttpResponse("Success")
+		# store_id = request.GET.get("store_id")
+		with django.db.transaction.atomic():
+			val = request.GET.copy().dict()
+			store = m.Store.objects.create(**val) ##should return a queryset with 0 or 1 elements.
+			return HttpResponse(store.store_id)
+		return HttpResponse("Error", status = 400)
 	except Exception as e:
 		return HttpResponse(e, status = 400)
 
@@ -298,12 +342,35 @@ def get_showcase(request):
 		showcase_dict["showcase_id"] = showcase.showcase_id
 		showcase_dict["store"] = showcase.store.store_id
 		showcase_dict["type"] = showcase.get_showcase_type_display()
+		showcase_dict["current_rent"] = float(showcase.current_rent)
+
 		if showcase.showcaserental_set.all():
 			showcase_dict["rental_id"] = showcase.showcaserental_set.last().id
 		else:
-			showcase_dict["rental_id"] = None
+			showcase_dict["rental_id"] = 0
 		json_msg = json.dumps(showcase_dict, indent=2)
 		return HttpResponse(json_msg, content_type="application/json")
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
+def get_showcase_sales(request):
+	try:
+		showcase_id = request.GET.get("showcase_id")
+		showcase = m.Showcase.objects.get(showcase_id = showcase_id) ##should return a queryset with 0 or 1 elements.
+		msg = ""
+
+		with django.db.connection.cursor() as cursor:
+			sql = f"select server_purchase.id from server_purchase inner join server_inventory on server_purchase.inventory_id = server_inventory.inventory_id where from_showcase_id = '{showcase_id}'"
+			print (sql)
+			cursor.execute(sql)
+
+			sql_result = cursor.fetchall()
+			# sql_result = [] #safe even when it's empty
+			sql_result_list = [i[0] for i in sql_result]
+
+			purchases = m.Purchase.objects.filter(id__in = sql_result_list)
+
+		return HttpResponse(str(msg))
 	except Exception as e:
 		return HttpResponse(e, status = 400)
 
@@ -363,8 +430,9 @@ def rent_showcase(request):
 			showcase_rental.save()
 			showcase = showcase_rental.showcase
 			showcase.showcase_type = showcase_rental.showcase_type
+			showcase.from_tenant = showcase_rental.tenant
+			showcase.current_rent = showcase_rental.monthly_rent
 			showcase.save()
-
 			showcase_rental.tenant.balance -= decimal.Decimal(showcase_rental.monthly_rent)
 			showcase_rental.tenant.save()
 
@@ -417,6 +485,11 @@ def list_inventory(request):
 	# 5.1
 	try:
 		inventories = m.Inventory.objects.all()
+
+		if "q" in request.GET:
+			q = request.GET.get("q")
+			inventories = inventories.filter(Q(inventory_id__icontains=q)|Q(inventory__stock__name__icontains=q))
+
 		msg = []
 		if "from_showcase_id" in request.GET:
 			from_showcase_id = request.GET.get("from_showcase_id")
@@ -445,6 +518,29 @@ def create_inventory(request):
 		inventory = m.Inventory.objects.create(**request.GET.dict())
 		inventory.save()
 		return HttpResponse(inventory.inventory_id, status = 400)
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
+def create_inventory_quick(request):
+	try:
+		tenant_id = request.GET.get("tenant_id")
+		showcase_id = request.GET.get("showcase_id")
+		unit_price = request.GET.get("unit_price")
+		quantity = request.GET.get("quantity")
+		stock_name = request.GET.get("stock_name")
+		# type = request.GET.get("type")
+
+		with django.db.transaction.atomic():
+			tenant = m.Tenant.objects.get(tenant_id = tenant_id)
+			showcase = m.Showcase.objects.get(showcase_id = showcase_id)
+
+			stock = m.Stock.objects.create(name = stock_name)
+			stock.save()
+
+			inventory = m.Inventory.objects.create(from_stock = stock, unit_price = unit_price, stock_in_qty = quantity, owner = tenant, from_showcase = showcase)
+			inventory.save()
+
+			return HttpResponse(inventory.inventory_id)
 	except Exception as e:
 		return HttpResponse(e, status = 400)
 
@@ -597,6 +693,10 @@ def list_staff(request):
 	#3.1, 4
 	staff_members = m.Staff.objects.all()
 
+	if "q" in request.GET:
+		q = request.GET["q"]
+		staff_members = staff_members.filter(Q(staff_id__icontains = q)|Q(staff_name__icontains = q))
+
 	msg = []
 	try:
 		for staff in staff_members:
@@ -695,7 +795,11 @@ def update_staff(request):
 def list_receipt(request):
 	#9 - todo
 	#3, 5
-	receipts = m.Receipt.objects.all()
+	receipts = m.Receipt.objects.order_by("-id")
+
+	if "q" in request.GET:
+		receipts = receipts.filter(id__icontains = request.GET["q"])
+
 	msg = []
 	try:
 		for receipt in receipts:
@@ -707,6 +811,7 @@ def list_receipt(request):
 			receipt_dict["tender"] =  float(receipt.tender)
 			receipt_dict["change"] =  float(receipt.change)
 			receipt_dict["responsible"] =  receipt.responsible.staff_name
+			receipt_dict["is_cancelled"] =  receipt.is_cancelled
 			msg.append(receipt_dict)
 		response = {}
 		response["result"] = msg
@@ -733,6 +838,7 @@ def get_receipt(request):
 		response["tender"] = float(receipt.tender)
 		response["change"] = float(receipt.change)
 		response["responsible"] = receipt.responsible.staff_name
+		response["is_cancelled"] = receipt.is_cancelled
 		response["purchase"] = []
 		for purchase in receipt.purchase_set.all():
 			purchase_dict = {}
@@ -745,6 +851,35 @@ def get_receipt(request):
 		return HttpResponse(json_msg, content_type="application/json")
 	except Exception as e:
 		return HttpResponse(e, status = 400)
+
+def receipt_refund(request):
+	try:
+		# Cancel a receipt.
+		# if "return_product" is selected, the number of products will be returned to the inventory list.
+		id = request.GET.get("id")
+		return_product = "return_product" in request.GET
+		receipt = m.Receipt.objects.get(id = id)
+
+		if receipt.is_cancelled:
+			raise ValueError("Receipt has already been cancelled")
+
+		with django.db.transaction.atomic():
+			for purchase in receipt.purchase_set.all():
+				tenant = purchase.inventory.owner
+
+				tenant.balance -= purchase.amount * (100 - tenant.commission_rate) / 100
+				tenant.save()
+				# deduct tenant balance by product price * 0.95 * unit price
+				if return_product:
+					#re-stock item
+					purchase.inventory.stock_in_qty += purchase.quantity
+					purchase.inventory.save()
+			receipt.is_cancelled = True
+			receipt.save()
+
+		return HttpResponse("Success")
+	except Exception as e:
+			return HttpResponse(e, status = 400)
 
 def get_receipt_print(request):
 	try:
@@ -796,7 +931,11 @@ def checkout(request):
 					result_dict = json.loads(payload_content)
 					msg = ""
 					receipt = m.Receipt()
-					receipt.grand_total = result_dict['total']
+					if receipt.is_cancelled:
+						# cancelled
+						receipt.grand_total = 0
+					else:
+						receipt.grand_total = result_dict['total']
 					receipt.tender = result_dict['tender']
 					receipt.discount = result_dict['discount']
 					receipt.change = receipt.tender - receipt.grand_total
@@ -872,6 +1011,14 @@ def test_json(request):
 
 	}
 	return HttpResponse("Success")
+
+
+def generate_report(request):
+	try:
+		stores = m.Stores.objects.all()
+	except Exception as e:
+		return HttpResponse(str(e), status = 400)
+
 
 @csrf_exempt
 def test_post(request):
