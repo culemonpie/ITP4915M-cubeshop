@@ -53,7 +53,7 @@ class Tenant(models.Model):
 	user = models.OneToOneField(User, on_delete = models.CASCADE)
 	tenant_name = models.CharField(max_length = 255)
 	phone = models.CharField(max_length = 255)
-	address = models.TextField(max_length = 255)
+	address = models.EmailField(max_length = 255)
 	date_joined = models.DateField(auto_now_add = True)
 	balance = models.DecimalField(max_digits = 6, decimal_places = 1, default = 0)
 	commission_rate = models.DecimalField(max_digits = 6, decimal_places = 1, default = 5)
@@ -236,6 +236,7 @@ class Purchase(models.Model):
 	# stock = models.ForeignKey("Stock", on_delete = models.CASCADE)
 	inventory = models.ForeignKey("Inventory", on_delete = models.CASCADE)
 	receipt = models.ForeignKey("Receipt", on_delete = models.CASCADE)
+	is_cancelled = models.BooleanField(default = False)
 
 	def __str__(self):
 		return f"{self.id}"

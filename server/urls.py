@@ -57,8 +57,11 @@ urlpatterns = [
 
 	path('list_receipt', views.list_receipt), #12
 	path('receipt_refund', views.receipt_refund), #12
+	path('remove_item_from_receipt', views.remove_item_from_receipt), #12
 	path('get_receipt', views.get_receipt), #12.1
 	path('get_receipt_print', views.get_receipt_print), #12.2
+
+	path('view_sales', views.view_sales), #12.2
 
 	path('is_authenticated', views.is_authenticated), #test
 	path('test_db_integrity', views.test_db_integrity), #test

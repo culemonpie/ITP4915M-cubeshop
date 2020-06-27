@@ -94,6 +94,15 @@ def create_tenant(request):
 			response = {}
 			response["tenant_id"] = tenant.tenant_id
 			response["password"] = password
+
+			send_mail(
+			'Thank you for registering on HKCS',
+			render_to_string("cubeshop/register_email.txt") ,
+			'<HKCS>HKFingerprint@gmail.com',
+			[tenant.address],
+			fail_silently=True,
+			)
+
 			return JsonResponse(response)
 		except Exception as e:
 			return HttpResponse(e, status = 400)
@@ -488,7 +497,7 @@ def list_inventory(request):
 
 		if "q" in request.GET:
 			q = request.GET.get("q")
-			inventories = inventories.filter(Q(inventory_id__icontains=q)|Q(inventory__stock__name__icontains=q))
+			inventories = inventories.filter(Q(inventory_id__icontains=q)|Q(from_stock__name__icontains=q))
 
 		msg = []
 		if "from_showcase_id" in request.GET:
@@ -839,18 +848,38 @@ def get_receipt(request):
 		response["change"] = float(receipt.change)
 		response["responsible"] = receipt.responsible.staff_name
 		response["is_cancelled"] = receipt.is_cancelled
+		response["is_discount"] = receipt.discount > 0
 		response["purchase"] = []
-		for purchase in receipt.purchase_set.all():
+		for purchase in receipt.purchase_set.filter(is_cancelled = False):
+		# for purchase in receipt.purchase_set.filter(is_cancelled = False):
 			purchase_dict = {}
+			purchase_dict["purchase_id"] = purchase.id
 			purchase_dict["quantity"] = purchase.quantity
 			purchase_dict["amount"] = float(purchase.amount)
 			purchase_dict["remark"] = purchase.remark
 			purchase_dict["stock_name"] = purchase.inventory.from_stock.name
+			purchase_dict["is_cancelled"] = purchase.is_cancelled
 			response["purchase"].append(purchase_dict)
 		json_msg = json.dumps(response, indent=2)
 		return HttpResponse(json_msg, content_type="application/json")
 	except Exception as e:
 		return HttpResponse(e, status = 400)
+
+def remove_item_from_receipt(request):
+	try:
+		id = request.GET.get("purchase_id")
+		purchase = m.Purchase.objects.get(id = id)
+		if not purchase.is_cancelled:
+			purchase.is_cancelled = True
+			purchase.receipt.grand_total -= purchase.amount
+			purchase.receipt.save()
+			purchase.save()
+			return HttpResponse("Success")
+		else:
+			return HttpResponse("Product has already been deleted", status = 400)
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
 
 def receipt_refund(request):
 	try:
@@ -1019,6 +1048,31 @@ def generate_report(request):
 	except Exception as e:
 		return HttpResponse(str(e), status = 400)
 
+def view_sales(request):
+	try:
+		tenant_id = request.GET.get("tenant_id")
+		with django.db.connection.cursor() as cursor:
+			sql = f"select server_receipt.time, server_purchase.quantity, server_purchase.amount from server_purchase inner join server_inventory on server_purchase.inventory_id = server_inventory.inventory_id inner join server_stock on server_stock.stock_id = server_inventory.`from_stock_id` inner join server_receipt on server_receipt.id = server_purchase.receipt_id where owner_id = {tenant_id}"
+			cursor.execute(sql)
+
+			sql_result = cursor.fetchall()
+
+			msg = ""
+			response = {}
+			response["record"] = []
+			for record in sql_result:
+				record_dict = {}
+				record_dict["time"] = record[0].strftime("%Y-%m-%d %H:%M")
+				record_dict["quantity"] = record[1]
+				record_dict["amount"] = float(record[2])
+				# record_dict["total"] = record[3]
+				response["record"].append(record_dict)
+
+			json_msg = json.dumps(response, indent=2)
+			return HttpResponse(json_msg, content_type="application/json")
+
+	except Exception as e:
+		return HttpResponse(e, 400)
 
 @csrf_exempt
 def test_post(request):
@@ -1028,11 +1082,4 @@ def test_post(request):
 	return HttpResponse(request.method)
 
 def test_email(request):
-	send_mail(
-	'Thank you for registering on HKCS',
-	render_to_string("cubeshop/register_email.txt") ,
-	'<HKCS>HKFingerprint@gmail.com',
-	['robert@fingerprint.com.hk'],
-	fail_silently=False,
-)
 	return HttpResponse("Success")
