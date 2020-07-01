@@ -95,10 +95,15 @@ def create_tenant(request):
 			response["tenant_id"] = tenant.tenant_id
 			response["password"] = password
 
+			context = {
+				'username': username,
+				'password': password,
+			}
+			
 			send_mail(
 			'Thank you for registering on HKCS',
-			render_to_string("cubeshop/register_email.txt") ,
-			'<HKCS>HKFingerprint@gmail.com',
+			render_to_string("server/register_email.txt", context) ,
+			'HKFingerprint@gmail.com',
 			[tenant.address],
 			fail_silently=True,
 			)

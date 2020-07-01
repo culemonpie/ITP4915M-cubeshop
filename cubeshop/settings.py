@@ -151,7 +151,7 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 
 # Optional SMTP authentication information for EMAIL_HOST
-DEFAULT_FROM_EMAIL = 'HKCubeShop <HKFingerprint@gmail.com>'
+DEFAULT_FROM_EMAIL = 'HKFingerprint@gmail.com'
 
 
 EMAIL_HOST_USER = 'HKFingerprint@gmail.com'

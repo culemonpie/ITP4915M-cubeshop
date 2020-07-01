@@ -3,8 +3,8 @@ Dear Ben,
 Thank you for applying to be a tenant in Hong Kong Cube Shop.
 Your login credentials as below:
 
-Username: xxxx
-Password: xxxx
+Username: {{username}}
+Password: {{password}}
 
 Please change your password as soon as you login.
 We are glad to have you as our valued tenant.
