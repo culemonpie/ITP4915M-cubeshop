@@ -12,7 +12,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.core.mail import send_mail
 import decimal
 from django.contrib.auth.decorators import login_required
-
+from urllib.request import urlopen
 
 def get_user_subclass(user):
 	try:
@@ -309,8 +309,10 @@ def list_showcase(request):
 				showcase_dict["rental_id"] = showcase.showcaserental_set.last().id
 				# showcase_dict["current_rent"] = showcase.showcaserental_set.last().current_rent
 				showcase_dict["owner"] = showcase.showcaserental_set.last().tenant.tenant_name
+				showcase_dict["owner_id"] = showcase.showcaserental_set.last().tenant.tenant_id
 			else:
 				showcase_dict["rental_id"] = None
+				showcase_dict["owner_id"] = None
 				showcase_dict["owner"] = None
 			json_msg = json.dumps(showcase_dict, indent=2)
 			msg.append(showcase_dict)
@@ -360,8 +362,28 @@ def get_showcase(request):
 
 		if showcase.showcaserental_set.all():
 			showcase_dict["rental_id"] = showcase.showcaserental_set.last().id
+			# showcase_dict["current_rent"] = showcase.showcaserental_set.last().current_rent
+			showcase_dict["owner"] = showcase.showcaserental_set.last().tenant.tenant_name
+			showcase_dict["owner_id"] = showcase.showcaserental_set.last().tenant.tenant_id
+		else:
+			showcase_dict["rental_id"] = None
+			showcase_dict["owner_id"] = None
+			showcase_dict["owner"] = None
+
+		if showcase.showcaserental_set.all():
+			showcase_dict["rental_id"] = showcase.showcaserental_set.last().id
 		else:
 			showcase_dict["rental_id"] = 0
+
+		showcase_dict["inventory"] = []
+
+		for inventory in showcase.inventory_set.all():
+			inventory_dict = {}
+			inventory_dict["name"] = inventory.from_stock.name
+			inventory_dict["quantity"] = inventory.stock_in_qty
+			inventory_dict["unit_price"] = float(inventory.unit_price)
+			showcase_dict["inventory"].append(inventory_dict)
+
 		json_msg = json.dumps(showcase_dict, indent=2)
 		return HttpResponse(json_msg, content_type="application/json")
 	except Exception as e:
@@ -407,7 +429,7 @@ def view_tenant_statement(request):
 			inner join server_stock on server_inventory.from_stock_id = server_stock.`stock_id`\
 			inner join server_tenant on server_tenant.tenant_id = server_inventory.owner_id\
 			inner join server_showcase on server_inventory.from_showcase_id = server_showcase.showcase_id\
-			where time between '{starting_date}' and '{ending_date}' and tenant_id = {tenant_id} and server_purchase.is_cancelled = 0\
+			where time between '{starting_date}' and '{ending_date}'+ INTERVAL 1 DAY and tenant_id = {tenant_id} and server_purchase.is_cancelled = 0\
 			"
 			cursor.execute(sql)
 			income = cursor.fetchone()
@@ -415,7 +437,7 @@ def view_tenant_statement(request):
 
 
 			sql = f"select sum(monthly_rent) from server_showcaserental\
-			where tenant_id = '{tenant_id}' and starting_date between '{starting_date}' and '{ending_date}'"
+			where tenant_id = '{tenant_id}' and starting_date between '{starting_date}' and '{ending_date}' + INTERVAL 1 DAY "
 			cursor.execute(sql)
 			rent = cursor.fetchone()
 			response["rent"] = float(rent[0] or 0)
@@ -429,7 +451,7 @@ def view_tenant_statement(request):
 			inner join server_stock on server_inventory.from_stock_id = server_stock.`stock_id`\
 			inner join server_tenant on server_tenant.tenant_id = server_inventory.owner_id\
 			inner join server_showcase on server_inventory.from_showcase_id = server_showcase.showcase_id\
-			where time between '{starting_date}' and '{ending_date}' and tenant_id = '{tenant_id}' and server_purchase.is_cancelled = 0"
+			where time between '{starting_date}' and '{ending_date}' + INTERVAL 1 DAY and tenant_id = '{tenant_id}' and server_purchase.is_cancelled = 0"
 
 			cursor.execute(sql)
 			sql_result = cursor.fetchall()
@@ -453,6 +475,80 @@ def view_tenant_statement(request):
 		return HttpResponse("Success")
 	except Exception as e:
 		return HttpResponse(e, status = 400)
+
+def email_tenant_statement(request):
+	try:
+		tenant_id = request.GET.get("tenant_id")
+		starting_date = request.GET.get("starting_date")
+		ending_date = request.GET.get("ending_date")
+
+		response = {}
+
+		tenant = m.Tenant.objects.get(tenant_id = tenant_id)
+		with django.db.connection.cursor() as cursor:
+
+			sql = f"select sum(amount) from server_receipt\
+			inner join server_purchase on server_receipt.id = server_purchase.receipt_id\
+			inner join server_inventory on server_purchase.inventory_id = server_inventory.inventory_id\
+			inner join server_stock on server_inventory.from_stock_id = server_stock.`stock_id`\
+			inner join server_tenant on server_tenant.tenant_id = server_inventory.owner_id\
+			inner join server_showcase on server_inventory.from_showcase_id = server_showcase.showcase_id\
+			where time between '{starting_date}' and '{ending_date}'+ INTERVAL 1 DAY and tenant_id = {tenant_id} and server_purchase.is_cancelled = 0\
+			"
+			cursor.execute(sql)
+			income = cursor.fetchone()
+			response["income"] = float(income[0] or 0)
+
+
+			sql = f"select sum(monthly_rent) from server_showcaserental\
+			where tenant_id = '{tenant_id}' and starting_date between '{starting_date}' and '{ending_date}' + INTERVAL 1 DAY "
+			cursor.execute(sql)
+			rent = cursor.fetchone()
+			response["rent"] = float(rent[0] or 0)
+
+			response["payable"] = response["income"] - response["rent"]
+			response["balance"] = float(tenant.balance)
+
+			response["tenant_name"] = tenant.tenant_name
+			response["starting_date"] = starting_date
+			response["ending_date"] = ending_date
+
+			sql = f"select server_showcase.store_id, server_receipt.time, server_stock.name, server_purchase.quantity, server_purchase.amount from server_receipt\
+			inner join server_purchase on server_receipt.id = server_purchase.receipt_id\
+			inner join server_inventory on server_purchase.inventory_id = server_inventory.inventory_id\
+			inner join server_stock on server_inventory.from_stock_id = server_stock.`stock_id`\
+			inner join server_tenant on server_tenant.tenant_id = server_inventory.owner_id\
+			inner join server_showcase on server_inventory.from_showcase_id = server_showcase.showcase_id\
+			where time between '{starting_date}' and '{ending_date}' + INTERVAL 1 DAY and tenant_id = '{tenant_id}' and server_purchase.is_cancelled = 0"
+
+			cursor.execute(sql)
+			sql_result = cursor.fetchall()
+			# return JsonResponse(response, safe = False)
+			response["record"] = []
+			for record in sql_result:
+				record_dict = {}
+				record_dict["store_id"] = record[0]
+				record_dict["datetime"] = record[1].strftime("%Y-%m-%d %H:%M")
+				record_dict["name"] = record[2]
+				record_dict["quantity"] = float(record[3])
+				record_dict["amount"] = float(record[4])
+
+
+			msg = render_to_string("server/view_tenant_statement.txt", response)
+			# return HttpResponse(msg)
+
+			send_mail(
+			'Your statement',
+			msg ,
+			'HKFingerprint@gmail.com',
+			[tenant.address],
+			fail_silently=True,
+			)
+
+		return HttpResponse("Success")
+	except Exception as e:
+		return HttpResponse(e, status = 400)
+
 
 def get_tenant_sales(request):
 	#4.1
@@ -636,7 +732,7 @@ def create_inventory(request):
 
 def create_inventory_quick(request):
 	try:
-		tenant_id = request.GET.get("tenant_id")
+		# tenant_id = request.GET.get("tenant_id")
 		showcase_id = request.GET.get("showcase_id")
 		unit_price = request.GET.get("unit_price")
 		quantity = request.GET.get("quantity")
@@ -644,8 +740,9 @@ def create_inventory_quick(request):
 		# type = request.GET.get("type")
 
 		with django.db.transaction.atomic():
-			tenant = m.Tenant.objects.get(tenant_id = tenant_id)
+			# tenant = m.Tenant.objects.get(tenant_id = tenant_id)
 			showcase = m.Showcase.objects.get(showcase_id = showcase_id)
+			tenant = showcase.from_tenant
 
 			stock = m.Stock.objects.create(name = stock_name)
 			stock.save()

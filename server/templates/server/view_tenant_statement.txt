@@ -1,12 +1,14 @@
-Dear {{tenant_name}},
+Dear {{tenant_name|default:"Customer"}},
 
 Please see below the statement for the below period:
 
 Starting date: {{starting_date}}
 Ending date: {{ending_date}}
 
-Details:
-
+Income: {{income}}
+Rent: {{rent}}
+Profit / Loss: {{payable}}
+Your current balance: {{payable}}
 
 Regards,
 Hong Kong Cube Shop Limited

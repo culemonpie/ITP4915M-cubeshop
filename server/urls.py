@@ -13,6 +13,7 @@ urlpatterns = [
 	path('create_store', views.create_store), #3.3 OK
 	path('get_showcase', views.get_showcase), #4.1 OK
 	path('get_showcase_sales', views.get_showcase_sales), #4.1 OK
+	# path('get_showcase_inventory', views.get_showcase_inventory), #4.1 OK
 	path('create_showcase', views.create_showcase), #4.2 OK
 	path('update_showcase', views.update_showcase), #4.3 OK
 	path('rent_showcase', views.rent_showcase), #4.4
@@ -67,6 +68,7 @@ urlpatterns = [
 	path('view_sales', views.view_sales), #12.2
 	path('view_store_performance', views.view_store_performance), #12.2
 	path('view_tenant_statement', views.view_tenant_statement), #12.2
+	path('email_tenant_statement', views.email_tenant_statement), #12.2
 
 	path('is_authenticated', views.is_authenticated), #test
 	path('test_db_integrity', views.test_db_integrity), #test
