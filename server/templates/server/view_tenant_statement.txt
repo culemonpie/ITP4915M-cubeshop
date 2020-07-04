@@ -1,0 +1,12 @@
+Dear {{tenant_name}},
+
+Please see below the statement for the below period:
+
+Starting date: {{starting_date}}
+Ending date: {{ending_date}}
+
+Details:
+
+
+Regards,
+Hong Kong Cube Shop Limited

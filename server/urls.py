@@ -16,14 +16,17 @@ urlpatterns = [
 	path('create_showcase', views.create_showcase), #4.2 OK
 	path('update_showcase', views.update_showcase), #4.3 OK
 	path('rent_showcase', views.rent_showcase), #4.4
+	path('deactive_showcase', views.deactive_showcase), #4.4
 
 	path('list_rental', views.list_rental), #XXX
+	path('list_rental_records', views.list_rental_records), #XXX
 
 	path('set_showcase_status', views.set_showcase_status), #4.4
 	path('list_inventory', views.list_inventory), #5, 5.1
 	path('change_inventory_quantity', views.change_inventory_quantity), #5.x
 	path('create_inventory', views.create_inventory), #5.x
 	path('create_inventory_quick', views.create_inventory_quick), #5.x
+	path('create_inventory_batch', views.create_inventory_batch), #5.x
 
 	path('list_stock', views.list_stock), #6 OK
 	path('get_stock', views.get_stock), #6.1 OK
@@ -62,6 +65,8 @@ urlpatterns = [
 	path('get_receipt_print', views.get_receipt_print), #12.2
 
 	path('view_sales', views.view_sales), #12.2
+	path('view_store_performance', views.view_store_performance), #12.2
+	path('view_tenant_statement', views.view_tenant_statement), #12.2
 
 	path('is_authenticated', views.is_authenticated), #test
 	path('test_db_integrity', views.test_db_integrity), #test

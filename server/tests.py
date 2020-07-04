@@ -116,6 +116,29 @@ class APITest(TestCase):
 		# 檢查是否有重複用戶名或不正確輸入，則失敗
 		# 如一切正確，將新增帳戶並以電郵通知張先生
 
+		url = "/create_staff?username=1&current_salary=9000&staff_name=Robert&staff_type=M"
+		response = client.get(url).content
+		staff = m.User.objects.get(username = "1")
+		client.force_login(staff)
+
+
+		url = "/create_tenant?tenant_name=Mr%20lee&phone=26497712&address=harrypoonmingyau@gmail.com&commission_rate=5.5&username=leewai"
+		response = client.get(url).content
+		tenant = m.User.objects.get(username = "leewai")
+
+		store = m.Store.objects.create(store_id = "MK1", store_name="Mong Kok", address="Mong Kok Fa Yuen Street")
+		store.save()
+
+
+		url = "/rent_showcase?showcase_id=MK1003&starting_date=2020-07-02&ending_date=2020-08-01&monthly_rent=500&tenant_id=21&remark="
+		response = client.get(url).content
+
+		showcase = m.Showcase.objects.get()
+		url = "/tenant_topup?tenant_id=21&amount=1020"
+		response = client.get(url).content
+
+		url = "/create_inventory_quick?tenant_id=21&showcase_id=MK1003&unit_price=20&quantity=10&stock_name=smart%20toy"
+		response = client.get(url).content
 
 		# 3. 張先生入錢及提款
 		# 檢查原有及後來結餘相差值
