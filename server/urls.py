@@ -46,6 +46,7 @@ urlpatterns = [
 	path('list_tenant', views.list_tenant), #9
 	path('get_tenant_sales', views.get_tenant_sales), #9.1
 	path('get_tenant', views.get_tenant), #9.1
+	path('get_tenant_payment', views.get_tenant_payment), #9.1
 	path('update_tenant', views.update_tenant), #9.2
 	path('create_tenant', views.create_tenant), #9.3
 	path('tenant_topup', views.tenant_topup), #9.x
@@ -67,6 +68,7 @@ urlpatterns = [
 
 	path('view_sales', views.view_sales), #12.2
 	path('view_store_performance', views.view_store_performance), #12.2
+	path('statistical_report', views.statistical_report), #12.2
 	path('view_tenant_statement', views.view_tenant_statement), #12.2
 	path('email_tenant_statement', views.email_tenant_statement), #12.2
 

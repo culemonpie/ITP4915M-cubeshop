@@ -240,3 +240,8 @@ class Purchase(models.Model):
 
 	def __str__(self):
 		return f"{self.id}"
+
+class Transaction(models.Model):
+	tenant = models.ForeignKey("tenant", on_delete = models.CASCADE)
+	amount = models.DecimalField(max_digits = 6, decimal_places = 1)
+	time = models.DateTimeField(auto_now_add = True)

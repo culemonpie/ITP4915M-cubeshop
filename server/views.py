@@ -120,6 +120,13 @@ def tenant_topup(request):
 		if amount > 0:
 			tenant.balance += amount
 			tenant.save()
+			try:
+				transaction = m.Transaction()
+				transaction.tenant = tenant
+				transaction.amount = amount
+				transaction.save()
+			except:
+				pass
 		else:
 			raise ValueError("Value must be larger than 0")
 		return HttpResponse(tenant.balance)
@@ -134,12 +141,18 @@ def tenant_cashout(request):
 		if amount > 0:
 			tenant.balance -= amount
 			tenant.save()
+			try:
+				transaction = m.Transaction()
+				transaction.tenant = tenant
+				transaction.amount = -amount
+				transaction.save()
+			except:
+				pass
 		else:
 			raise ValueError("Value must be larger than 0")
 		return HttpResponse(tenant.balance)
 	except Exception as e:
 		return HttpResponse(e, status = 400)
-
 
 
 def update_tenant(request):
@@ -216,6 +229,8 @@ def get_tenant(request):
 	try:
 		tenant = m.Tenant.objects.get(tenant_id = tenant_id)
 		response = {}
+		response["result"] = []
+
 		response["tenant_id"] =  tenant.tenant_id
 		response["tenant_name"] =  tenant.tenant_name
 		response["phone"] =  tenant.phone
@@ -228,6 +243,27 @@ def get_tenant(request):
 		return HttpResponse(json_msg, content_type="application/json")
 	except Exception as e:
 		return HttpResponse(e, status  = 400)
+
+def get_tenant_payment(request):
+	#9.1
+	tenant_id = request.GET.get("tenant_id")
+
+	try:
+		tenant = m.Tenant.objects.get(tenant_id = tenant_id)
+		response = {}
+		response["result"] = []
+
+		for transaction in tenant.transaction_set.all():
+			transaction_dict = {}
+			transaction_dict["time"] = transaction.time.strftime("%Y-%m-%d %H:%M")
+			transaction_dict["amount"] = float(transaction.amount)
+			response["result"].append(transaction_dict)
+
+		json_msg = json.dumps(response, indent=2)
+		return HttpResponse(json_msg, content_type="application/json")
+	except Exception as e:
+		return HttpResponse(e, status  = 400)
+
 
 def list_store(request):
 	#3, 5
@@ -610,6 +646,14 @@ def rent_showcase(request):
 			showcase.save()
 			showcase_rental.tenant.balance -= decimal.Decimal(showcase_rental.monthly_rent)
 			showcase_rental.tenant.save()
+
+			try:
+				transaction = m.Transaction()
+				transaction.tenant = showcase_rental.tenant
+				transaction.amount = -showcase_rental.monthly_rent
+				transaction.save()
+			except:
+				pass
 
 			return HttpResponse(showcase_rental.id)
 
@@ -1341,6 +1385,35 @@ def test_db_integrity(request):
 		return HttpResponse(msg)
 	else:
 		return HttpResponse("Please login as a superuser", status = 400)
+
+def statistical_report(request):
+	try:
+		starting_date = request.GET.get("starting_date")
+		ending_date = request.GET.get("ending_date")
+
+		with django.db.connection.cursor() as cursor:
+
+			sql = f"select store_id, sum(amount) from server_purchase inner join server_inventory on server_inventory.inventory_id = server_purchase.inventory_id inner join server_showcase on from_showcase_id = server_showcase.showcase_id inner join server_receipt on server_purchase.receipt_id = server_receipt.id where time between '{starting_date}' and '{ending_date}'+ INTERVAL 1 DAY group by store_id"
+
+			response = {}
+			response["result"] = []
+
+			cursor.execute(sql)
+			sql_result = cursor.fetchall()
+
+			# response["size"] = len(sql_result)
+
+			for row in sql_result:
+				result = {
+					"store_name": row[0],
+					"amount": float(row[1])
+				}
+				response["result"].append(result)
+
+			json_msg = json.dumps(response, indent=2)
+			return HttpResponse(json_msg, content_type="application/json")
+	except Exception as e:
+		return HttpResponse(e, 400)
 
 def test_json(request):
 	response = {
