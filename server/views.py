@@ -2,7 +2,7 @@ import django
 from django.shortcuts import render
 from django.http import HttpResponseRedirect, HttpResponse, JsonResponse, FileResponse
 from django.template.loader import render_to_string
-from django.contrib.auth import authenticate, login, logout
+from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.core import serializers
 from . import models as m
 from django.db.models import Q
@@ -1286,6 +1286,7 @@ def change_password(request):
 		if authenticate(username = user.username, password = original_password):
 			user.set_password(new_password)
 			user.save()
+			update_session_auth_hash(request, user)
 			return HttpResponse("Success")
 		else:
 			return HttpResponse("Original password is incorrect.", status = 400)
